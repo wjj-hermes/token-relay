@@ -93,32 +93,61 @@ async def health():
 @app.get("/debug/alipay")
 async def debug_alipay():
     import os
-    from services.alipay import create_qrcode_pay
     priv = os.getenv("ALIPAY_PRIVATE_KEY", "")
     pub = os.getenv("ALIPAY_PUBLIC_KEY", "")
-    # Try to create a test QR code
-    qr_result = ""
+
+    # Analyze key format
+    priv_stripped = priv.strip().replace("\\n", "").replace("\n", "").replace("\r", "")
+    pub_stripped = pub.strip().replace("\\n", "").replace("\n", "").replace("\r", "")
+
+    key_info = {
+        "app_id": os.getenv("ALIPAY_APP_ID", ""),
+        "priv_key_len": len(priv_stripped),
+        "priv_key_first_20": priv_stripped[:20],
+        "priv_key_has_BEGIN": "BEGIN" in priv,
+        "pub_key_len": len(pub_stripped),
+        "pub_key_first_20": pub_stripped[:20],
+        "pub_key_has_BEGIN": "BEGIN" in pub,
+        "sandbox": os.getenv("ALIPAY_SANDBOX", "false"),
+        "notify_url": os.getenv("ALIPAY_NOTIFY_URL", ""),
+    }
+
+    # Try to decode and analyze key structure
+    try:
+        import base64
+        priv_bytes = base64.b64decode(priv_stripped)
+        key_info["priv_der_len"] = len(priv_bytes)
+        key_info["priv_der_first_10_hex"] = priv_bytes[:10].hex()
+        # PKCS#8 starts with 30 82 xx xx 02 01 00 30 0d ...
+        # PKCS#1 starts with 30 82 xx xx 02 01 00 02 82 ...
+        if len(priv_bytes) > 6:
+            key_info["priv_format_guess"] = "PKCS#8 (PRIVATE KEY)" if priv_bytes[6:8] == b'\x30\x0d' else "PKCS#1 (RSA PRIVATE KEY)" if priv_bytes[6:8] == b'\x02\x82' else "unknown"
+    except Exception as e:
+        key_info["base64_decode_error"] = str(e)
+
+    # Try initializing the client
     try:
         from services.alipay import _get_client
         alipay = _get_client()
-        result = alipay.api_alipay_trade_precreate(
-            out_trade_no="TEST_ORDER_001",
-            total_amount="0.01",
-            subject="测试商品",
-            notify_url=os.getenv("ALIPAY_NOTIFY_URL", ""),
-        )
-        qr_result = result
+        key_info["client_init"] = "SUCCESS"
+
+        # Try a test precreate
+        try:
+            result = alipay.api_alipay_trade_precreate(
+                out_trade_no="TEST_ORDER_001",
+                total_amount="0.01",
+                subject="测试商品",
+                notify_url=os.getenv("ALIPAY_NOTIFY_URL", ""),
+            )
+            key_info["precreate_result"] = result
+        except Exception as e:
+            key_info["precreate_error"] = f"{type(e).__name__}: {e}"
     except Exception as e:
         import traceback
-        qr_result = f"ERROR: {type(e).__name__}: {str(e)}\n{traceback.format_exc()}"
-    return {
-        "app_id": os.getenv("ALIPAY_APP_ID", ""),
-        "priv_key_len": len(priv),
-        "priv_key_has_header": "BEGIN" in priv,
-        "pub_key_len": len(pub),
-        "pub_key_has_header": "BEGIN" in pub,
-        "qr_test_result": qr_result,
-    }
+        key_info["client_init"] = f"FAILED: {type(e).__name__}: {e}"
+        key_info["traceback"] = traceback.format_exc()
+
+    return key_info
 
 
 @app.get("/v1/models")
