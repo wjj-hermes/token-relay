@@ -47,18 +47,20 @@
 
 <div class="table-responsive">
     <table class="table table-hover">
-        <thead><tr><th>{{ t("col_id") }}</th><th>{{ t("name") }}</th><th>{{ t("col_type") }}</th><th>{{ t("col_price") }}</th><th>{{ t("col_quota_days") }}</th><th>{{ t("col_daily_limit") }}</th><th>{{ t("col_status") }}</th><th>{{ t("action") }}</th></tr></thead>
+        <thead><tr><th>{{ t("col_id") }}</th><th>{{ t("name") }}</th><th>{{ t("product_desc") }}</th><th>{{ t("col_type") }}</th><th>{{ t("col_price") }}</th><th>{{ t("col_quota_days") }}</th><th>{{ t("col_daily_limit") }}</th><th>{{ t("col_status") }}</th><th>{{ t("action") }}</th></tr></thead>
         <tbody>
         {% for p in products %}
         <tr>
             <td>{{ p.id }}</td>
             <td>{{ p.name }}</td>
+            <td><small class="text-muted">{{ p.description or '-' }}</small></td>
             <td>{{ t("quota_pack") if p.type == "quota" else t("subscription") }}</td>
             <td>&yen;{{ "%.2f"|format(p.price / 100) }}</td>
             <td>{{ "{:,}".format(p.token_amount) if p.type == "quota" else p.duration_days ~ " " ~ t("days") }}</td>
             <td>{{ "{:,}".format(p.daily_limit) if p.daily_limit else "-" }}</td>
             <td><span class="badge bg-{{ 'success' if p.is_active else 'secondary' }}">{{ t("listed") if p.is_active else t("unlisted") }}</span></td>
             <td>
+                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ p.id }}">{{ t("edit") }}</button>
                 <form method="post" action="/admin/products/{{ p.id }}/toggle" class="d-inline">
                     <button class="btn btn-sm btn-outline-{{ 'danger' if p.is_active else 'success' }}">
                         {{ t("unlist") if p.is_active else t("list") }}
@@ -66,6 +68,61 @@
                 </form>
             </td>
         </tr>
+
+        <!-- Edit Modal -->
+        <div class="modal fade" id="editModal{{ p.id }}" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form method="post" action="/admin/products/{{ p.id }}/update">
+                        <div class="modal-header">
+                            <h5 class="modal-title">{{ t("edit") }} - {{ p.name }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">{{ t("product_name") }}</label>
+                                <input type="text" name="name" class="form-control" value="{{ p.name }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">{{ t("product_desc") }}</label>
+                                <input type="text" name="description" class="form-control" value="{{ p.description or '' }}">
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col">
+                                    <label class="form-label">{{ t("col_type") }}</label>
+                                    <select name="type" class="form-select">
+                                        <option value="quota" {{ 'selected' if p.type == 'quota' }}>{{ t("quota_pack") }}</option>
+                                        <option value="subscription" {{ 'selected' if p.type == 'subscription' }}>{{ t("subscription") }}</option>
+                                    </select>
+                                </div>
+                                <div class="col">
+                                    <label class="form-label">{{ t("col_price") }} ({{ t("price_fen") }})</label>
+                                    <input type="number" name="price" class="form-control" value="{{ p.price }}" required>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col">
+                                    <label class="form-label">{{ t("token_amount") }}</label>
+                                    <input type="number" name="token_amount" class="form-control" value="{{ p.token_amount }}">
+                                </div>
+                                <div class="col">
+                                    <label class="form-label">{{ t("duration_days") }}</label>
+                                    <input type="number" name="duration_days" class="form-control" value="{{ p.duration_days }}">
+                                </div>
+                                <div class="col">
+                                    <label class="form-label">{{ t("daily_limit_label") }}</label>
+                                    <input type="number" name="daily_limit" class="form-control" value="{{ p.daily_limit }}">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ t("cancel") }}</button>
+                            <button type="submit" class="btn btn-primary">{{ t("save") }}</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
         {% endfor %}
         </tbody>
     </table>

@@ -98,6 +98,27 @@ async def toggle_product(request: Request, product_id: int):
     return RedirectResponse("/admin/products", status_code=302)
 
 
+@router.post("/products/{product_id}/update")
+@require_admin
+async def update_product(request: Request, product_id: int,
+                         name: str = Form(...), description: str = Form(""),
+                         type: str = Form(...), price: int = Form(...),
+                         token_amount: int = Form(0), duration_days: int = Form(0),
+                         daily_limit: int = Form(0)):
+    db = request.state.db
+    product = await db.get(Product, product_id)
+    if product:
+        product.name = name
+        product.description = description
+        product.type = type
+        product.price = price
+        product.token_amount = token_amount
+        product.duration_days = duration_days
+        product.daily_limit = daily_limit
+        await db.commit()
+    return RedirectResponse("/admin/products", status_code=302)
+
+
 @router.get("/orders")
 @require_admin
 async def admin_orders(request: Request):
