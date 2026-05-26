@@ -20,7 +20,7 @@
         <div class="mb-2">
             <strong>{{ t("available_models") }}：</strong>
             {% for m in models %}
-            <code class="model-tag" id="model-{{ loop.index }}">{{ m.id }}</code>
+            <code class="model-tag" id="model-{{ loop.index }}">{{ m.name }}</code>
             <button class="btn btn-sm btn-outline-secondary py-0 px-1 ms-1" onclick="copyText('model-{{ loop.index }}')" style="font-size:0.7em;">{{ t("copy") }}</button>
             {% endfor %}
         </div>
