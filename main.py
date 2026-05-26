@@ -273,3 +273,4 @@ if __name__ == "__main__":
     sc = config.get("server", {})
     uvicorn.run(app, host=sc.get("host", "0.0.0.0"), port=sc.get("port", 8888))
 # redeploy trigger
+# force deploy Tue May 26 18:24:40     2026
