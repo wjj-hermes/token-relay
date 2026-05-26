@@ -1,4 +1,3 @@
-import secrets
 from datetime import datetime
 from fastapi import APIRouter, Request, Form
 from fastapi.responses import RedirectResponse
@@ -8,9 +7,17 @@ from sqlalchemy import select, func
 from auth import require_login
 from models import ApiKey, Order, UsageLog, Subscription
 from services.key_service import create_api_key
+from i18n import get_lang, t as _t
 
 router = APIRouter(prefix="/user")
 templates = Jinja2Templates(directory="templates")
+
+
+def _ctx(request: Request, **extra):
+    lang = get_lang(request)
+    ctx = {"lang": lang, "t": lambda k: _t(lang, k)}
+    ctx.update(extra)
+    return ctx
 
 
 @router.get("/dashboard")
@@ -37,10 +44,10 @@ async def dashboard(request: Request):
     )
     total_used = usage_result.scalar() or 0
 
-    return templates.TemplateResponse(request, "user/dashboard.html", {
-        "user": user, "keys": keys,
-        "orders": orders, "subs": subs, "total_used": total_used,
-    })
+    return templates.TemplateResponse(request, "user/dashboard.html", _ctx(
+        request, user=user, keys=keys,
+        orders=orders, subs=subs, total_used=total_used,
+    ))
 
 
 @router.post("/keys/create")

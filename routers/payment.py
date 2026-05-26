@@ -3,14 +3,22 @@ from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 
-from auth import require_login, get_current_user
+from auth import require_login
 from database import SessionLocal
 from models import Order, Product
 from services.order_service import create_order, complete_order
 from services.alipay import create_qrcode_pay, verify_notify
+from i18n import get_lang, t as _t
 
 router = APIRouter(prefix="/pay")
 templates = Jinja2Templates(directory="templates")
+
+
+def _ctx(request: Request, **extra):
+    lang = get_lang(request)
+    ctx = {"lang": lang, "t": lambda k: _t(lang, k)}
+    ctx.update(extra)
+    return ctx
 
 
 @router.post("/create")
@@ -23,15 +31,14 @@ async def pay_create(request: Request, product_id: int = Form(...)):
     except ValueError as e:
         return RedirectResponse(f"/?error={e}", status_code=302)
 
-    # Generate Alipay QR code
     product = await db.get(Product, product_id)
     amount_yuan = f"{order.amount / 100:.2f}"
     qr_url = create_qrcode_pay(order.order_no, amount_yuan, product.name)
 
-    return templates.TemplateResponse(request, "pay/qrcode.html", {
-        "user": user,
-        "order": order, "product": product, "qr_url": qr_url,
-    })
+    return templates.TemplateResponse(request, "pay/qrcode.html", _ctx(
+        request, user=user,
+        order=order, product=product, qr_url=qr_url,
+    ))
 
 
 @router.get("/qrcode/{order_no}")
@@ -46,15 +53,14 @@ async def pay_qrcode(request: Request, order_no: str):
     product = await db.get(Product, order.product_id)
     amount_yuan = f"{order.amount / 100:.2f}"
     qr_url = create_qrcode_pay(order.order_no, amount_yuan, product.name)
-    return templates.TemplateResponse(request, "pay/qrcode.html", {
-        "user": user,
-        "order": order, "product": product, "qr_url": qr_url,
-    })
+    return templates.TemplateResponse(request, "pay/qrcode.html", _ctx(
+        request, user=user,
+        order=order, product=product, qr_url=qr_url,
+    ))
 
 
 @router.post("/notify")
 async def pay_notify(request: Request):
-    """Alipay async notification callback."""
     form = await request.form()
     params = dict(form)
 
@@ -75,7 +81,6 @@ async def pay_notify(request: Request):
 @router.get("/status/{order_no}")
 @require_login
 async def pay_status(request: Request, order_no: str):
-    """Check order payment status (AJAX)."""
     user = request.state.user
     db = request.state.db
     result = await db.execute(select(Order).where(Order.order_no == order_no, Order.user_id == user.id))

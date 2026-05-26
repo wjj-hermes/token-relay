@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% block title %}管理后台 - Token Relay{% endblock %}
+{% block title %}{{ t("admin_dashboard") }} - Token Relay{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>管理后台</h2>
+    <h2>{{ t("admin_dashboard") }}</h2>
     <div>
-        <a href="/admin/users" class="btn btn-outline-primary btn-sm">用户管理</a>
-        <a href="/admin/products" class="btn btn-outline-primary btn-sm">产品管理</a>
-        <a href="/admin/orders" class="btn btn-outline-primary btn-sm">订单管理</a>
+        <a href="/admin/users" class="btn btn-outline-primary btn-sm">{{ t("user_mgmt") }}</a>
+        <a href="/admin/products" class="btn btn-outline-primary btn-sm">{{ t("product_mgmt") }}</a>
+        <a href="/admin/orders" class="btn btn-outline-primary btn-sm">{{ t("order_mgmt") }}</a>
     </div>
 </div>
 
@@ -14,7 +14,7 @@
     <div class="col-md-3">
         <div class="card text-center">
             <div class="card-body">
-                <h6 class="text-muted">用户数</h6>
+                <h6 class="text-muted">{{ t("user_count") }}</h6>
                 <h2>{{ user_count }}</h2>
             </div>
         </div>
@@ -22,7 +22,7 @@
     <div class="col-md-3">
         <div class="card text-center">
             <div class="card-body">
-                <h6 class="text-muted">订单数</h6>
+                <h6 class="text-muted">{{ t("order_count") }}</h6>
                 <h2>{{ order_count }}</h2>
             </div>
         </div>
@@ -30,7 +30,7 @@
     <div class="col-md-3">
         <div class="card text-center">
             <div class="card-body">
-                <h6 class="text-muted">总收入</h6>
+                <h6 class="text-muted">{{ t("revenue") }}</h6>
                 <h2>&yen;{{ "%.2f"|format(revenue / 100) }}</h2>
             </div>
         </div>
@@ -38,24 +38,24 @@
     <div class="col-md-3">
         <div class="card text-center">
             <div class="card-body">
-                <h6 class="text-muted">总用量</h6>
+                <h6 class="text-muted">{{ t("total_usage") }}</h6>
                 <h2>{{ "{:,}".format(total_tokens) }}</h2>
             </div>
         </div>
     </div>
 </div>
 
-<h5>最近订单</h5>
+<h5>{{ t("recent_orders") }}</h5>
 <div class="table-responsive">
     <table class="table table-sm table-hover">
-        <thead><tr><th>订单号</th><th>用户ID</th><th>金额</th><th>状态</th><th>时间</th></tr></thead>
+        <thead><tr><th>{{ t("order_no") }}</th><th>{{ t("user_id") }}</th><th>{{ t("amount") }}</th><th>{{ t("status") }}</th><th>{{ t("time") }}</th></tr></thead>
         <tbody>
         {% for o in recent_orders %}
         <tr>
             <td>{{ o.order_no[:16] }}...</td>
             <td>{{ o.user_id }}</td>
             <td>&yen;{{ "%.2f"|format(o.amount / 100) }}</td>
-            <td><span class="badge bg-{{ 'success' if o.status == 'paid' else 'warning' }}">{{ '已支付' if o.status == 'paid' else '待支付' }}</span></td>
+            <td><span class="badge bg-{{ 'success' if o.status == 'paid' else 'warning' }}">{{ t("paid") if o.status == 'paid' else t("pending") }}</span></td>
             <td>{{ o.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
         </tr>
         {% endfor %}

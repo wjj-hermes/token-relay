@@ -1,24 +1,24 @@
 {% extends "base.html" %}
-{% block title %}支付 - Token Relay{% endblock %}
+{% block title %}{{ t("scan_to_pay") }} - Token Relay{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-5">
         <div class="card">
             <div class="card-body text-center">
-                <h4>扫码支付</h4>
+                <h4>{{ t("scan_to_pay") }}</h4>
                 <p class="text-muted">{{ product.name }} &mdash; &yen;{{ "%.2f"|format(order.amount / 100) }}</p>
                 {% if qr_url %}
                 <div class="my-4">
-                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=280x280&data={{ qr_url }}" alt="支付二维码" class="img-fluid">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=280x280&data={{ qr_url }}" alt="QR Code" class="img-fluid">
                 </div>
-                <p class="text-muted small">请使用支付宝扫描上方二维码完成支付</p>
+                <p class="text-muted small">{{ t("scan_hint") }}</p>
                 {% else %}
-                <div class="alert alert-warning">二维码生成失败，请稍后重试。</div>
+                <div class="alert alert-warning">{{ t("qr_failed") }}</div>
                 {% endif %}
                 <div id="pay-status" class="mt-3">
-                    <span class="spinner-border spinner-border-sm"></span> 等待支付中...
+                    <span class="spinner-border spinner-border-sm"></span> {{ t("waiting_payment") }}
                 </div>
-                <p class="text-muted small mt-2">订单号：{{ order.order_no }}</p>
+                <p class="text-muted small mt-2">{{ t("order_label") }}：{{ order.order_no }}</p>
             </div>
         </div>
     </div>
@@ -29,13 +29,15 @@
 <script>
 const orderNo = "{{ order.order_no }}";
 const statusEl = document.getElementById("pay-status");
+const paySuccess = '{{ t("pay_success") }}';
+const goDashboard = '{{ t("go_dashboard") }}';
 
 async function checkStatus() {
     try {
         const resp = await fetch("/pay/status/" + orderNo);
         const data = await resp.json();
         if (data.status === "paid") {
-            statusEl.innerHTML = '<div class="alert alert-success">支付成功！<a href="/user/dashboard">进入控制台</a></div>';
+            statusEl.innerHTML = '<div class="alert alert-success">' + paySuccess + ' <a href="/user/dashboard">' + goDashboard + '</a></div>';
             return;
         }
     } catch (e) {}

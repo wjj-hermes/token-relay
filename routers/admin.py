@@ -4,11 +4,18 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import select, func
 
 from auth import require_admin
-from models import User, Product, Order, UsageLog, ApiKey
-from database import SessionLocal
+from models import User, Product, Order, UsageLog
+from i18n import get_lang, t as _t
 
 router = APIRouter(prefix="/admin")
 templates = Jinja2Templates(directory="templates")
+
+
+def _ctx(request: Request, **extra):
+    lang = get_lang(request)
+    ctx = {"lang": lang, "t": lambda k: _t(lang, k)}
+    ctx.update(extra)
+    return ctx
 
 
 @router.get("/dashboard")
@@ -23,12 +30,12 @@ async def admin_dashboard(request: Request):
         select(Order).order_by(Order.created_at.desc()).limit(20)
     )
     recent_orders = recent_orders_result.scalars().all()
-    return templates.TemplateResponse(request, "admin/dashboard.html", {
-        "user": request.state.user,
-        "user_count": user_count, "order_count": order_count,
-        "revenue": revenue, "total_tokens": total_tokens,
-        "recent_orders": recent_orders,
-    })
+    return templates.TemplateResponse(request, "admin/dashboard.html", _ctx(
+        request, user=request.state.user,
+        user_count=user_count, order_count=order_count,
+        revenue=revenue, total_tokens=total_tokens,
+        recent_orders=recent_orders,
+    ))
 
 
 @router.get("/users")
@@ -37,9 +44,9 @@ async def admin_users(request: Request):
     db = request.state.db
     result = await db.execute(select(User).order_by(User.created_at.desc()))
     users = result.scalars().all()
-    return templates.TemplateResponse(request, "admin/users.html", {
-        "user": request.state.user, "users": users,
-    })
+    return templates.TemplateResponse(request, "admin/users.html", _ctx(
+        request, user=request.state.user, users=users,
+    ))
 
 
 @router.post("/users/{user_id}/toggle")
@@ -59,9 +66,9 @@ async def admin_products(request: Request):
     db = request.state.db
     result = await db.execute(select(Product).order_by(Product.id))
     products = result.scalars().all()
-    return templates.TemplateResponse(request, "admin/products.html", {
-        "user": request.state.user, "products": products,
-    })
+    return templates.TemplateResponse(request, "admin/products.html", _ctx(
+        request, user=request.state.user, products=products,
+    ))
 
 
 @router.post("/products/create")
@@ -96,6 +103,6 @@ async def admin_orders(request: Request):
     db = request.state.db
     result = await db.execute(select(Order).order_by(Order.created_at.desc()).limit(100))
     orders = result.scalars().all()
-    return templates.TemplateResponse(request, "admin/orders.html", {
-        "user": request.state.user, "orders": orders,
-    })
+    return templates.TemplateResponse(request, "admin/orders.html", _ctx(
+        request, user=request.state.user, orders=orders,
+    ))

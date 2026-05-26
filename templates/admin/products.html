@@ -1,39 +1,39 @@
 {% extends "base.html" %}
-{% block title %}产品管理 - Token Relay{% endblock %}
+{% block title %}{{ t("product_mgmt") }} - Token Relay{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>产品管理</h2>
-    <a href="/admin/dashboard" class="btn btn-outline-secondary btn-sm">返回</a>
+    <h2>{{ t("product_mgmt") }}</h2>
+    <a href="/admin/dashboard" class="btn btn-outline-secondary btn-sm">{{ t("back") }}</a>
 </div>
 
 <div class="card mb-4">
     <div class="card-body">
-        <h5>添加产品</h5>
+        <h5>{{ t("add_product") }}</h5>
         <form method="post" action="/admin/products/create">
             <div class="row g-2">
                 <div class="col-md-3">
-                    <input type="text" name="name" class="form-control" placeholder="产品名称" required>
+                    <input type="text" name="name" class="form-control" placeholder="{{ t('product_name') }}" required>
                 </div>
                 <div class="col-md-2">
                     <select name="type" class="form-select">
-                        <option value="quota">额度包</option>
-                        <option value="subscription">订阅制</option>
+                        <option value="quota">{{ t("quota_pack") }}</option>
+                        <option value="subscription">{{ t("subscription") }}</option>
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <input type="number" name="price" class="form-control" placeholder="价格(分)" required>
+                    <input type="number" name="price" class="form-control" placeholder="{{ t('price_fen') }}" required>
                 </div>
                 <div class="col-md-2">
-                    <input type="number" name="token_amount" class="form-control" placeholder="Token数量">
+                    <input type="number" name="token_amount" class="form-control" placeholder="{{ t('token_amount') }}">
                 </div>
                 <div class="col-md-1">
-                    <input type="number" name="duration_days" class="form-control" placeholder="天数">
+                    <input type="number" name="duration_days" class="form-control" placeholder="{{ t('duration_days') }}">
                 </div>
                 <div class="col-md-1">
-                    <input type="number" name="daily_limit" class="form-control" placeholder="日上限">
+                    <input type="number" name="daily_limit" class="form-control" placeholder="{{ t('daily_limit_label') }}">
                 </div>
                 <div class="col-md-1">
-                    <button class="btn btn-primary w-100">添加</button>
+                    <button class="btn btn-primary w-100">{{ t("add_btn") }}</button>
                 </div>
             </div>
         </form>
@@ -42,21 +42,21 @@
 
 <div class="table-responsive">
     <table class="table table-hover">
-        <thead><tr><th>ID</th><th>名称</th><th>类型</th><th>价格</th><th>额度/天数</th><th>日上限</th><th>状态</th><th>操作</th></tr></thead>
+        <thead><tr><th>{{ t("col_id") }}</th><th>{{ t("name") }}</th><th>{{ t("col_type") }}</th><th>{{ t("col_price") }}</th><th>{{ t("col_quota_days") }}</th><th>{{ t("col_daily_limit") }}</th><th>{{ t("col_status") }}</th><th>{{ t("action") }}</th></tr></thead>
         <tbody>
         {% for p in products %}
         <tr>
             <td>{{ p.id }}</td>
             <td>{{ p.name }}</td>
-            <td>{{ "额度包" if p.type == "quota" else "订阅制" }}</td>
+            <td>{{ t("quota_pack") if p.type == "quota" else t("subscription") }}</td>
             <td>&yen;{{ "%.2f"|format(p.price / 100) }}</td>
-            <td>{{ "{:,}".format(p.token_amount) if p.type == "quota" else p.duration_days ~ " 天" }}</td>
+            <td>{{ "{:,}".format(p.token_amount) if p.type == "quota" else p.duration_days ~ " " ~ t("days") }}</td>
             <td>{{ "{:,}".format(p.daily_limit) if p.daily_limit else "-" }}</td>
-            <td><span class="badge bg-{{ 'success' if p.is_active else 'secondary' }}">{{ "上架" if p.is_active else "下架" }}</span></td>
+            <td><span class="badge bg-{{ 'success' if p.is_active else 'secondary' }}">{{ t("listed") if p.is_active else t("unlisted") }}</span></td>
             <td>
                 <form method="post" action="/admin/products/{{ p.id }}/toggle" class="d-inline">
                     <button class="btn btn-sm btn-outline-{{ 'danger' if p.is_active else 'success' }}">
-                        {{ "下架" if p.is_active else "上架" }}
+                        {{ t("unlist") if p.is_active else t("list") }}
                     </button>
                 </form>
             </td>

@@ -1,13 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Token Relay - API 密钥商城{% endblock %}
+{% block title %}{{ t("site_title") }}{% endblock %}
 {% block content %}
 <div class="text-center py-5">
-    <h1>Token Relay Station</h1>
-    <p class="lead text-muted">稳定可靠的 LLM API 接入服务 &mdash; 购买额度，获取 API Key，即刻开始</p>
+    <h1>{{ t("home_title") }}</h1>
+    <p class="lead text-muted">{{ t("home_subtitle") }}</p>
 </div>
 
 {% if products %}
-<h3 class="mb-4">可选套餐</h3>
+<h3 class="mb-4">{{ t("plans_title") }}</h3>
 <div class="row g-4">
     {% for p in products %}
     <div class="col-md-4">
@@ -15,19 +15,19 @@
             <div class="card-body d-flex flex-column">
                 <h5 class="card-title">{{ p.name }}</h5>
                 {% if p.type == "quota" %}
-                <p class="text-muted">{{ "{:,}".format(p.token_amount) }} tokens</p>
+                <p class="text-muted">{{ "{:,}".format(p.token_amount) }} {{ t("tokens") }}</p>
                 {% else %}
-                <p class="text-muted">{{ p.duration_days }} 天{% if p.daily_limit %} / 每日 {{ "{:,}".format(p.daily_limit) }} tokens{% else %} / 不限量{% endif %}</p>
+                <p class="text-muted">{{ p.duration_days }} {{ t("days") }}{% if p.daily_limit %} / {{ t("daily_limit") }} {{ "{:,}".format(p.daily_limit) }} {{ t("tokens") }}{% else %} / {{ t("unlimited") }}{% endif %}</p>
                 {% endif %}
                 <div class="mt-auto">
                     <span class="h3">&yen;{{ "%.2f"|format(p.price / 100) }}</span>
                     {% if user %}
                     <form method="post" action="/pay/create" class="d-inline float-end">
                         <input type="hidden" name="product_id" value="{{ p.id }}">
-                        <button class="btn btn-primary">立即购买</button>
+                        <button class="btn btn-primary">{{ t("buy_now") }}</button>
                     </form>
                     {% else %}
-                    <a href="/register" class="btn btn-outline-primary float-end">注册后购买</a>
+                    <a href="/register" class="btn btn-outline-primary float-end">{{ t("signup_to_buy") }}</a>
                     {% endif %}
                 </div>
             </div>
@@ -37,22 +37,22 @@
 </div>
 {% else %}
 <div class="text-center text-muted py-5">
-    <p>暂无可售套餐，请稍后再来。</p>
+    <p>{{ t("no_plans") }}</p>
 </div>
 {% endif %}
 
 <div class="row mt-5 g-4">
     <div class="col-md-4">
-        <h5>兼容 OpenAI</h5>
-        <p class="text-muted">完全兼容 OpenAI API 格式，可直接替换现有 SDK</p>
+        <h5>{{ t("feat_openai_title") }}</h5>
+        <p class="text-muted">{{ t("feat_openai_desc") }}</p>
     </div>
     <div class="col-md-4">
-        <h5>多模型支持</h5>
-        <p class="text-muted">DeepSeek、GPT、Claude 等多种模型，一个接口统一调用</p>
+        <h5>{{ t("feat_models_title") }}</h5>
+        <p class="text-muted">{{ t("feat_models_desc") }}</p>
     </div>
     <div class="col-md-4">
-        <h5>灵活计费</h5>
-        <p class="text-muted">支持额度包和月度订阅，按需选择，无隐藏费用</p>
+        <h5>{{ t("feat_billing_title") }}</h5>
+        <p class="text-muted">{{ t("feat_billing_desc") }}</p>
     </div>
 </div>
 {% endblock %}

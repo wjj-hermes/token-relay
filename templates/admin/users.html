@@ -1,13 +1,13 @@
 {% extends "base.html" %}
-{% block title %}用户管理 - Token Relay{% endblock %}
+{% block title %}{{ t("user_mgmt") }} - Token Relay{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>用户管理</h2>
-    <a href="/admin/dashboard" class="btn btn-outline-secondary btn-sm">返回</a>
+    <h2>{{ t("user_mgmt") }}</h2>
+    <a href="/admin/dashboard" class="btn btn-outline-secondary btn-sm">{{ t("back") }}</a>
 </div>
 <div class="table-responsive">
     <table class="table table-hover">
-        <thead><tr><th>ID</th><th>用户名</th><th>邮箱</th><th>余额</th><th>管理员</th><th>状态</th><th>注册时间</th><th>操作</th></tr></thead>
+        <thead><tr><th>{{ t("col_id") }}</th><th>{{ t("col_username") }}</th><th>{{ t("col_email") }}</th><th>{{ t("col_balance") }}</th><th>{{ t("col_admin") }}</th><th>{{ t("col_status") }}</th><th>{{ t("col_joined") }}</th><th>{{ t("action") }}</th></tr></thead>
         <tbody>
         {% for u in users %}
         <tr>
@@ -15,14 +15,14 @@
             <td>{{ u.username }}</td>
             <td>{{ u.email }}</td>
             <td>{{ "{:,}".format(u.balance) }}</td>
-            <td>{{ "是" if u.is_admin else "否" }}</td>
-            <td><span class="badge bg-{{ 'success' if u.is_active else 'danger' }}">{{ "正常" if u.is_active else "已禁用" }}</span></td>
+            <td>{{ t("yes") if u.is_admin else t("no") }}</td>
+            <td><span class="badge bg-{{ 'success' if u.is_active else 'danger' }}">{{ t("active") if u.is_active else t("disabled") }}</span></td>
             <td>{{ u.created_at.strftime('%Y-%m-%d') }}</td>
             <td>
                 {% if not u.is_admin %}
                 <form method="post" action="/admin/users/{{ u.id }}/toggle" class="d-inline">
                     <button class="btn btn-sm btn-outline-{{ 'danger' if u.is_active else 'success' }}">
-                        {{ "禁用" if u.is_active else "启用" }}
+                        {{ t("disable") if u.is_active else t("enable") }}
                     </button>
                 </form>
                 {% endif %}
