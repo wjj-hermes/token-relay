@@ -14,27 +14,43 @@ IS_SANDBOX = os.getenv("ALIPAY_SANDBOX", "false").lower() == "true"
 
 def _format_key(key: str, key_type: str = "PRIVATE") -> str:
     key = key.strip().replace("\r", "").replace("\\n", "\n")
-    if key.startswith("-----"):
+    if "BEGIN" in key:
         return key
     # Add proper PEM headers with line breaks every 64 chars
     lines = [key[i:i+64] for i in range(0, len(key), 64)]
     body = "\n".join(lines)
-    return f"-----BEGIN {key_type} KEY-----\n{body}\n-----END {key_type} KEY-----"
+    if key_type == "PUBLIC":
+        return f"-----BEGIN PUBLIC KEY-----\n{body}\n-----END PUBLIC KEY-----"
+    return f"-----BEGIN RSA PRIVATE KEY-----\n{body}\n-----END RSA PRIVATE KEY-----"
 
 
 def _get_client() -> AliPay:
     priv_key = _format_key(ALIPAY_PRIVATE_KEY, "PRIVATE")
     pub_key = _format_key(ALIPAY_PUBLIC_KEY, "PUBLIC")
     logger.info(f"Alipay APPID: {ALIPAY_APP_ID}")
-    logger.info(f"Private key starts with: {priv_key[:30]}...")
-    return AliPay(
-        appid=ALIPAY_APP_ID,
-        app_notify_url=ALIPAY_NOTIFY_URL,
-        app_private_key_string=priv_key,
-        alipay_public_key_string=pub_key,
-        sign_type="RSA2",
-        debug=IS_SANDBOX,
-    )
+    logger.info(f"Priv key header: {priv_key[:40]}")
+    logger.info(f"Pub key header: {pub_key[:40]}")
+    try:
+        return AliPay(
+            appid=ALIPAY_APP_ID,
+            app_notify_url=ALIPAY_NOTIFY_URL,
+            app_private_key_string=priv_key,
+            alipay_public_key_string=pub_key,
+            sign_type="RSA2",
+            debug=IS_SANDBOX,
+        )
+    except Exception as e:
+        logger.error(f"AliPay init error: {e}")
+        # Try RSA PRIVATE KEY format
+        priv_key_rsa = priv_key.replace("BEGIN PRIVATE KEY", "BEGIN RSA PRIVATE KEY").replace("END PRIVATE KEY", "END RSA PRIVATE KEY")
+        return AliPay(
+            appid=ALIPAY_APP_ID,
+            app_notify_url=ALIPAY_NOTIFY_URL,
+            app_private_key_string=priv_key_rsa,
+            alipay_public_key_string=pub_key,
+            sign_type="RSA2",
+            debug=IS_SANDBOX,
+        )
 
 
 def create_qrcode_pay(order_no: str, amount_yuan: str, subject: str) -> str:
