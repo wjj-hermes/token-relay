@@ -90,6 +90,24 @@ async def health():
     return {"status": "ok", "models": relay.list_models()}
 
 
+@app.get("/debug/alipay")
+async def debug_alipay():
+    import os
+    priv = os.getenv("ALIPAY_PRIVATE_KEY", "")
+    pub = os.getenv("ALIPAY_PUBLIC_KEY", "")
+    return {
+        "app_id": os.getenv("ALIPAY_APP_ID", ""),
+        "notify_url": os.getenv("ALIPAY_NOTIFY_URL", ""),
+        "sandbox": os.getenv("ALIPAY_SANDBOX", ""),
+        "priv_key_len": len(priv),
+        "priv_key_first_30": priv[:30],
+        "priv_key_has_header": "BEGIN" in priv,
+        "pub_key_len": len(pub),
+        "pub_key_first_30": pub[:30],
+        "pub_key_has_header": "BEGIN" in pub,
+    }
+
+
 @app.get("/v1/models")
 async def list_models():
     return {"object": "list", "data": [{"id": m["id"], "object": "model", "created": int(time.time()), "owned_by": m["owned_by"]} for m in relay.list_models()]}
