@@ -93,8 +93,13 @@ async def health():
 @app.get("/debug/alipay")
 async def debug_alipay():
     import os
-    priv = os.getenv("ALIPAY_PRIVATE_KEY", "")
-    pub = os.getenv("ALIPAY_PUBLIC_KEY", "")
+    from services.alipay import ALIPAY_PRIVATE_KEY as mod_priv, ALIPAY_PUBLIC_KEY as mod_pub
+    env_priv = os.getenv("ALIPAY_PRIVATE_KEY", "")
+    env_pub = os.getenv("ALIPAY_PUBLIC_KEY", "")
+
+    # Use the module-level values (which may have been loaded from file)
+    priv = mod_priv
+    pub = mod_pub
 
     # Analyze key format
     priv_stripped = priv.strip().replace("\\n", "").replace("\n", "").replace("\r", "")
@@ -102,7 +107,8 @@ async def debug_alipay():
 
     key_info = {
         "app_id": os.getenv("ALIPAY_APP_ID", ""),
-        "priv_key_len": len(priv_stripped),
+        "env_priv_key_len": len(env_priv),
+        "module_priv_key_len": len(priv_stripped),
         "priv_key_first_20": priv_stripped[:20],
         "priv_key_has_BEGIN": "BEGIN" in priv,
         "pub_key_len": len(pub_stripped),
