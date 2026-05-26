@@ -4,13 +4,13 @@ from alipay import AliPay
 
 logger = logging.getLogger("alipay")
 
-ALIPAY_APP_ID = os.getenv("ALIPAY_APP_ID", "")
-ALIPAY_PRIVATE_KEY = os.getenv("ALIPAY_PRIVATE_KEY", "")
+ALIPAY_APP_ID = os.getenv("ALIPAY_APP_ID", "") or "2021006156623714"
 ALIPAY_PUBLIC_KEY = os.getenv("ALIPAY_PUBLIC_KEY", "") or "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArVpeGo8f6OhNZp0Oik+H6HOSZTIxUJJOXfJXVcBAVfE+FRq+qAGpUlGmJjaYCQsMLEBR9nGO+NbSVdQdWZuemepRvSuMntb5Vwyu7POZSkahhOkYINkvEnM+1aDJ7yIdI+Lpg3gC3Abal4HsCJjJ7aM2BSL0zhwYRMkpLFlus7FeHwzAFXt2Gn5fKgIfWV8GTBrL/RfNtKUKkLu8Mn7eqaEQbK8dGf7Bml2RcgTT6kyxKSnwC5m0FIZmkJkR4A+JIftGlx2ppwu4mpA8MUxEo0uYPOf0o7pdg3RBbmTwTFsyr0WynaHzULHjDg28OosgVPINs91EKNoGXoEVoEri4QIDAQAB"
-ALIPAY_NOTIFY_URL = os.getenv("ALIPAY_NOTIFY_URL", "")
+ALIPAY_NOTIFY_URL = os.getenv("ALIPAY_NOTIFY_URL", "") or "https://token-relay-production-2904.up.railway.app/pay/notify"
 IS_SANDBOX = os.getenv("ALIPAY_SANDBOX", "false").lower() == "true"
 
-# Fallback: read key from file if env var is truncated
+# Load private key: env var -> file
+ALIPAY_PRIVATE_KEY = os.getenv("ALIPAY_PRIVATE_KEY", "")
 _priv_key_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), "keys", "alipay_private_key.pem")
 if len(ALIPAY_PRIVATE_KEY) < 1000 and os.path.exists(_priv_key_file):
     with open(_priv_key_file, "r") as f:
