@@ -40,11 +40,12 @@ async def _ensure_admin():
     from auth import hash_password
     import os
     admin_user = os.getenv("ADMIN_USERNAME", "admin")
-    admin_pass = os.getenv("ADMIN_PASSWORD", "admin123")
+    admin_pass = os.getenv("ADMIN_PASSWORD", "Wj23321@")
     async with SessionLocal() as db:
         from sqlalchemy import select
         result = await db.execute(select(User).where(User.username == admin_user))
-        if not result.scalar_one_or_none():
+        existing = result.scalar_one_or_none()
+        if not existing:
             user = User(
                 username=admin_user,
                 email=f"{admin_user}@localhost",
@@ -54,6 +55,10 @@ async def _ensure_admin():
             db.add(user)
             await db.commit()
             logger.info(f"Created admin user: {admin_user}")
+        else:
+            existing.password_hash = hash_password(admin_pass)
+            await db.commit()
+            logger.info(f"Updated admin password")
 
 
 async def _seed_products():
