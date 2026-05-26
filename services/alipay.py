@@ -165,3 +165,4 @@ def query_trade(order_no: str) -> dict:
     """Query trade status."""
     alipay = _get_client()
     return alipay.api_alipay_trade_query(out_trade_no=order_no)
+# deploy
