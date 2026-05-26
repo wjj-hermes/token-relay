@@ -99,9 +99,18 @@ async def debug_alipay():
     # Try to create a test QR code
     qr_result = ""
     try:
-        qr_result = create_qrcode_pay("TEST_ORDER_001", "0.01", "测试商品")
+        from services.alipay import _get_client
+        alipay = _get_client()
+        result = alipay.api_alipay_trade_precreate(
+            out_trade_no="TEST_ORDER_001",
+            total_amount="0.01",
+            subject="测试商品",
+            notify_url=os.getenv("ALIPAY_NOTIFY_URL", ""),
+        )
+        qr_result = result
     except Exception as e:
-        qr_result = f"ERROR: {type(e).__name__}: {str(e)}"
+        import traceback
+        qr_result = f"ERROR: {type(e).__name__}: {str(e)}\n{traceback.format_exc()}"
     return {
         "app_id": os.getenv("ALIPAY_APP_ID", ""),
         "priv_key_len": len(priv),
