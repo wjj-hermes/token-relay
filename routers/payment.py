@@ -28,8 +28,8 @@ async def pay_create(request: Request, product_id: int = Form(...)):
     amount_yuan = f"{order.amount / 100:.2f}"
     qr_url = create_qrcode_pay(order.order_no, amount_yuan, product.name)
 
-    return templates.TemplateResponse("pay/qrcode.html", {
-        "request": request, "user": user,
+    return templates.TemplateResponse(request, "pay/qrcode.html", {
+        "user": user,
         "order": order, "product": product, "qr_url": qr_url,
     })
 
@@ -46,8 +46,8 @@ async def pay_qrcode(request: Request, order_no: str):
     product = await db.get(Product, order.product_id)
     amount_yuan = f"{order.amount / 100:.2f}"
     qr_url = create_qrcode_pay(order.order_no, amount_yuan, product.name)
-    return templates.TemplateResponse("pay/qrcode.html", {
-        "request": request, "user": user,
+    return templates.TemplateResponse(request, "pay/qrcode.html", {
+        "user": user,
         "order": order, "product": product, "qr_url": qr_url,
     })
 

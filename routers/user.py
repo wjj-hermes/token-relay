@@ -37,8 +37,8 @@ async def dashboard(request: Request):
     )
     total_used = usage_result.scalar() or 0
 
-    return templates.TemplateResponse("user/dashboard.html", {
-        "request": request, "user": user, "keys": keys,
+    return templates.TemplateResponse(request, "user/dashboard.html", {
+        "user": user, "keys": keys,
         "orders": orders, "subs": subs, "total_used": total_used,
     })
 

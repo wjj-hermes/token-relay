@@ -21,12 +21,12 @@ async def index(request: Request):
     async with SessionLocal() as db:
         result = await db.execute(select(Product).where(Product.is_active == True))
         products = result.scalars().all()
-    return templates.TemplateResponse("index.html", {"request": request, "user": user, "products": products})
+    return templates.TemplateResponse(request, "index.html", {"user": user, "products": products})
 
 
 @router.get("/login")
 async def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request, "error": ""})
+    return templates.TemplateResponse(request, "login.html", {"error": ""})
 
 
 @router.post("/login")
@@ -35,9 +35,9 @@ async def login_submit(request: Request, username: str = Form(...), password: st
         result = await db.execute(select(User).where(User.username == username))
         user = result.scalar_one_or_none()
         if not user or not verify_password(password, user.password_hash):
-            return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials"})
+            return templates.TemplateResponse(request, "login.html", {"error": "Invalid credentials"})
         if not user.is_active:
-            return templates.TemplateResponse("login.html", {"request": request, "error": "Account disabled"})
+            return templates.TemplateResponse(request, "login.html", {"error": "Account disabled"})
         token = create_token(user.id, user.is_admin)
         resp = RedirectResponse("/user/dashboard", status_code=302)
         resp.set_cookie("token", token, httponly=True, max_age=72 * 3600)
@@ -46,20 +46,20 @@ async def login_submit(request: Request, username: str = Form(...), password: st
 
 @router.get("/register")
 async def register_page(request: Request):
-    return templates.TemplateResponse("register.html", {"request": request, "error": ""})
+    return templates.TemplateResponse(request, "register.html", {"error": ""})
 
 
 @router.post("/register")
 async def register_submit(request: Request, username: str = Form(...), email: str = Form(...),
                           password: str = Form(...), password2: str = Form(...)):
     if password != password2:
-        return templates.TemplateResponse("register.html", {"request": request, "error": "Passwords do not match"})
+        return templates.TemplateResponse(request, "register.html", {"error": "Passwords do not match"})
     if len(password) < 6:
-        return templates.TemplateResponse("register.html", {"request": request, "error": "Password too short"})
+        return templates.TemplateResponse(request, "register.html", {"error": "Password too short"})
     async with SessionLocal() as db:
         existing = await db.execute(select(User).where((User.username == username) | (User.email == email)))
         if existing.scalar_one_or_none():
-            return templates.TemplateResponse("register.html", {"request": request, "error": "Username or email taken"})
+            return templates.TemplateResponse(request, "register.html", {"error": "Username or email taken"})
         user = User(username=username, email=email, password_hash=hash_password(password))
         db.add(user)
         await db.commit()

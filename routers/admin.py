@@ -23,8 +23,8 @@ async def admin_dashboard(request: Request):
         select(Order).order_by(Order.created_at.desc()).limit(20)
     )
     recent_orders = recent_orders_result.scalars().all()
-    return templates.TemplateResponse("admin/dashboard.html", {
-        "request": request, "user": request.state.user,
+    return templates.TemplateResponse(request, "admin/dashboard.html", {
+        "user": request.state.user,
         "user_count": user_count, "order_count": order_count,
         "revenue": revenue, "total_tokens": total_tokens,
         "recent_orders": recent_orders,
@@ -37,8 +37,8 @@ async def admin_users(request: Request):
     db = request.state.db
     result = await db.execute(select(User).order_by(User.created_at.desc()))
     users = result.scalars().all()
-    return templates.TemplateResponse("admin/users.html", {
-        "request": request, "user": request.state.user, "users": users,
+    return templates.TemplateResponse(request, "admin/users.html", {
+        "user": request.state.user, "users": users,
     })
 
 
@@ -59,8 +59,8 @@ async def admin_products(request: Request):
     db = request.state.db
     result = await db.execute(select(Product).order_by(Product.id))
     products = result.scalars().all()
-    return templates.TemplateResponse("admin/products.html", {
-        "request": request, "user": request.state.user, "products": products,
+    return templates.TemplateResponse(request, "admin/products.html", {
+        "user": request.state.user, "products": products,
     })
 
 
@@ -96,6 +96,6 @@ async def admin_orders(request: Request):
     db = request.state.db
     result = await db.execute(select(Order).order_by(Order.created_at.desc()).limit(100))
     orders = result.scalars().all()
-    return templates.TemplateResponse("admin/orders.html", {
-        "request": request, "user": request.state.user, "orders": orders,
+    return templates.TemplateResponse(request, "admin/orders.html", {
+        "user": request.state.user, "orders": orders,
     })
