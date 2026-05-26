@@ -47,7 +47,7 @@
 
 <div class="table-responsive">
     <table class="table table-hover">
-        <thead><tr><th>{{ t("col_id") }}</th><th>{{ t("name") }}</th><th>{{ t("product_desc") }}</th><th>{{ t("col_type") }}</th><th>{{ t("col_price") }}</th><th>{{ t("col_quota_days") }}</th><th>{{ t("col_daily_limit") }}</th><th>{{ t("col_status") }}</th><th>{{ t("action") }}</th></tr></thead>
+        <thead><tr><th>{{ t("col_id") }}</th><th>{{ t("name") }}</th><th>{{ t("product_desc") }}</th><th>{{ t("col_type") }}</th><th>{{ t("col_price") }}</th><th>{{ t("token_amount") }}</th><th>{{ t("duration_days") }}</th><th>{{ t("col_daily_limit") }}</th><th>{{ t("col_status") }}</th><th>{{ t("action") }}</th></tr></thead>
         <tbody>
         {% for p in products %}
         <tr>
@@ -56,7 +56,8 @@
             <td><small class="text-muted">{{ p.description or '-' }}</small></td>
             <td>{{ t("quota_pack") if p.type == "quota" else t("subscription") }}</td>
             <td>&yen;{{ "%.2f"|format(p.price / 100) }}</td>
-            <td>{{ "{:,}".format(p.token_amount) if p.type == "quota" else p.duration_days ~ " " ~ t("days") }}</td>
+            <td>{{ "{:,}".format(p.token_amount) if p.token_amount else "-" }}</td>
+            <td>{{ p.duration_days if p.duration_days else "-" }}</td>
             <td>{{ "{:,}".format(p.daily_limit) if p.daily_limit else "-" }}</td>
             <td><span class="badge bg-{{ 'success' if p.is_active else 'secondary' }}">{{ t("listed") if p.is_active else t("unlisted") }}</span></td>
             <td>
