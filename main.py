@@ -22,6 +22,9 @@ async def lifespan(app: FastAPI):
     # Auto-create admin user if not exists
     await _ensure_admin()
     await _seed_products()
+    await _seed_models()
+    # Load models from database
+    await relay.reload_from_db()
     logger.info(f"Token Relay starting on {config['server']['host']}:{config['server']['port']}")
     logger.info(f"Models: {[m['id'] for m in relay.list_models()]}")
     yield
@@ -69,6 +72,24 @@ async def _seed_products():
         db.add_all(defaults)
         await db.commit()
         logger.info("Seeded default products")
+
+
+async def _seed_models():
+    from models import LLMModel
+    async with SessionLocal() as db:
+        from sqlalchemy import select
+        result = await db.execute(select(LLMModel))
+        if result.scalars().first():
+            return
+        default = LLMModel(
+            name="deepseek-v4-flash",
+            model_id="deepseek-ai/deepseek-v4-flash",
+            base_url="https://integrate.api.nvidia.com/v1",
+            api_key="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",
+        )
+        db.add(default)
+        await db.commit()
+        logger.info("Seeded default model")
 
 
 # Register routers

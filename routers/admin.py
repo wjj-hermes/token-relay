@@ -4,7 +4,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import select, func
 
 from auth import require_admin
-from models import User, Product, Order, UsageLog
+from models import User, Product, Order, UsageLog, LLMModel
 from i18n import get_lang, t as _t
 
 router = APIRouter(prefix="/admin")
@@ -128,3 +128,75 @@ async def admin_orders(request: Request):
     return templates.TemplateResponse(request, "admin/orders.html", _ctx(
         request, user=request.state.user, orders=orders,
     ))
+
+
+# === Model Management ===
+
+@router.get("/models")
+@require_admin
+async def admin_models(request: Request):
+    db = request.state.db
+    result = await db.execute(select(LLMModel).order_by(LLMModel.id))
+    models = result.scalars().all()
+    return templates.TemplateResponse(request, "admin/models.html", _ctx(
+        request, user=request.state.user, models=models,
+    ))
+
+
+@router.post("/models/create")
+@require_admin
+async def create_model(request: Request, name: str = Form(...),
+                       model_id: str = Form(...), base_url: str = Form(...),
+                       api_key: str = Form(...)):
+    db = request.state.db
+    m = LLMModel(name=name, model_id=model_id, base_url=base_url, api_key=api_key)
+    db.add(m)
+    await db.commit()
+    # Reload relay models
+    from relay import relay
+    await relay.reload_from_db()
+    return RedirectResponse("/admin/models", status_code=302)
+
+
+@router.post("/models/{model_id}/toggle")
+@require_admin
+async def toggle_model(request: Request, model_id: int):
+    db = request.state.db
+    m = await db.get(LLMModel, model_id)
+    if m:
+        m.is_active = not m.is_active
+        await db.commit()
+        from relay import relay
+        await relay.reload_from_db()
+    return RedirectResponse("/admin/models", status_code=302)
+
+
+@router.post("/models/{model_id}/update")
+@require_admin
+async def update_model(request: Request, model_id: int,
+                       name: str = Form(...), model_id_val: str = Form(...),
+                       base_url: str = Form(...), api_key: str = Form(...)):
+    db = request.state.db
+    m = await db.get(LLMModel, model_id)
+    if m:
+        m.name = name
+        m.model_id = model_id_val
+        m.base_url = base_url
+        m.api_key = api_key
+        await db.commit()
+        from relay import relay
+        await relay.reload_from_db()
+    return RedirectResponse("/admin/models", status_code=302)
+
+
+@router.post("/models/{model_id}/delete")
+@require_admin
+async def delete_model(request: Request, model_id: int):
+    db = request.state.db
+    m = await db.get(LLMModel, model_id)
+    if m:
+        await db.delete(m)
+        await db.commit()
+        from relay import relay
+        await relay.reload_from_db()
+    return RedirectResponse("/admin/models", status_code=302)

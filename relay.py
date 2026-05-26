@@ -96,5 +96,49 @@ class Relay:
     def list_models(self) -> list[dict]:
         return [{"id": m, "owned_by": n} for n, p in self.providers.items() for m in p.models]
 
+    async def reload_from_db(self):
+        """Reload models from database and merge with config providers."""
+        import asyncio
+        from database import SessionLocal
+        from sqlalchemy import select
+        from models import LLMModel
+
+        async with SessionLocal() as db:
+            result = await db.execute(select(LLMModel).where(LLMModel.is_active == True))
+            db_models = result.scalars().all()
+
+        if not db_models:
+            return
+
+        # Group models by base_url to create/update providers
+        url_groups: Dict[str, list] = {}
+        for m in db_models:
+            url_groups.setdefault(m.base_url, []).append(m)
+
+        for base_url, models in url_groups.items():
+            provider_name = f"db_{hash(base_url) % 10000}"
+            keys = list({m.api_key for m in models})
+            model_dict = {m.name: m.model_id for m in models}
+
+            if provider_name not in self.providers:
+                self.providers[provider_name] = OpenAIProvider(
+                    base_url=base_url, api_keys=keys, models=model_dict
+                )
+                self.key_manager.load_keys(provider_name, keys)
+            else:
+                prov = self.providers[provider_name]
+                prov.models = model_dict
+                for k in keys:
+                    if k not in prov.api_keys:
+                        prov.api_keys.append(k)
+
+            for m in models:
+                self.model_map[m.name] = provider_name
+                logger.info(f"DB model: {m.name} -> {provider_name} ({m.base_url})")
+
+    def get_all_model_names(self) -> list[str]:
+        """Return all registered model display names."""
+        return list(self.model_map.keys())
+
 
 relay = Relay()

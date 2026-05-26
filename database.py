@@ -13,7 +13,7 @@ class Base(DeclarativeBase):
 
 
 async def init_db():
-    from models import User, ApiKey, Product, Order, UsageLog, Subscription  # noqa
+    from models import User, ApiKey, Product, Order, UsageLog, Subscription, LLMModel  # noqa
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         # Migrate: add description column to products if missing

@@ -81,6 +81,18 @@ class UsageLog(Base):
     __table_args__ = (Index("ix_usage_user_time", "user_id", "created_at"),)
 
 
+class LLMModel(Base):
+    __tablename__ = "llm_models"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(100), nullable=False)  # 显示名称
+    model_id = Column(String(200), nullable=False)  # 上游模型 ID
+    base_url = Column(String(500), nullable=False)  # API 地址
+    api_key = Column(String(500), nullable=False)  # 密钥
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
 class Subscription(Base):
     __tablename__ = "subscriptions"
 
