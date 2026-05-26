@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}{{ t("pay_success") }} - Token Relay{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <h3 class="text-success mb-3">{{ t("pay_success") }}</h3>
+                <p class="text-muted">{{ t("pay_success_hint") }}</p>
+                <a href="/user/dashboard" class="btn btn-primary mt-3">{{ t("go_dashboard") }}</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
