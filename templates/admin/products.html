@@ -18,7 +18,7 @@
                     <input type="text" name="description" class="form-control" placeholder="{{ t('product_desc') }}">
                 </div>
                 <div class="col-md-2">
-                    <select name="type" class="form-select" id="addType" onchange="toggleAddFields()">
+                    <select name="type" class="form-select">
                         <option value="quota">{{ t("quota_pack") }}</option>
                         <option value="subscription">{{ t("subscription") }}</option>
                     </select>
@@ -28,13 +28,13 @@
                 </div>
             </div>
             <div class="row g-2">
-                <div class="col-md-3" id="addFieldToken">
+                <div class="col-md-3">
                     <input type="number" name="token_amount" class="form-control" placeholder="{{ t('token_amount') }}">
                 </div>
-                <div class="col-md-3" id="addFieldDays" style="display:none">
+                <div class="col-md-3">
                     <input type="number" name="duration_days" class="form-control" placeholder="{{ t('duration_days') }}">
                 </div>
-                <div class="col-md-3" id="addFieldLimit" style="display:none">
+                <div class="col-md-3">
                     <input type="number" name="daily_limit" class="form-control" placeholder="{{ t('daily_limit_label') }}">
                 </div>
                 <div class="col-md-3">
@@ -101,13 +101,11 @@
                                     <input type="number" name="price" class="form-control" value="{{ p.price }}" required>
                                 </div>
                             </div>
-                            {% if p.type == "quota" %}
-                            <div class="mb-3">
-                                <label class="form-label">{{ t("token_amount") }}</label>
-                                <input type="number" name="token_amount" class="form-control" value="{{ p.token_amount }}">
-                            </div>
-                            {% else %}
                             <div class="row mb-3">
+                                <div class="col">
+                                    <label class="form-label">{{ t("token_amount") }}</label>
+                                    <input type="number" name="token_amount" class="form-control" value="{{ p.token_amount }}">
+                                </div>
                                 <div class="col">
                                     <label class="form-label">{{ t("duration_days") }}</label>
                                     <input type="number" name="duration_days" class="form-control" value="{{ p.duration_days }}">
@@ -117,7 +115,6 @@
                                     <input type="number" name="daily_limit" class="form-control" value="{{ p.daily_limit }}">
                                 </div>
                             </div>
-                            {% endif %}
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ t("cancel") }}</button>
@@ -131,15 +128,4 @@
         </tbody>
     </table>
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-function toggleAddFields() {
-    var type = document.getElementById('addType').value;
-    document.getElementById('addFieldToken').style.display = type === 'quota' ? '' : 'none';
-    document.getElementById('addFieldDays').style.display = type === 'subscription' ? '' : 'none';
-    document.getElementById('addFieldLimit').style.display = type === 'subscription' ? '' : 'none';
-}
-</script>
 {% endblock %}
