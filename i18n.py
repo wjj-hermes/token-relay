@@ -109,7 +109,7 @@ MESSAGES = {
         "subscription": "订阅制",
         "price_fen": "价格(分)",
         "token_amount": "Token数量",
-        "duration_days": "天数",
+        "duration_days": "订阅天数",
         "daily_limit_label": "日上限",
         "add_btn": "添加",
         "col_type": "类型",
