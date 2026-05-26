@@ -10,6 +10,13 @@ ALIPAY_PUBLIC_KEY = os.getenv("ALIPAY_PUBLIC_KEY", "")
 ALIPAY_NOTIFY_URL = os.getenv("ALIPAY_NOTIFY_URL", "")
 IS_SANDBOX = os.getenv("ALIPAY_SANDBOX", "false").lower() == "true"
 
+# Fallback: read key from file if env var is truncated
+_priv_key_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), "keys", "alipay_private_key.pem")
+if len(ALIPAY_PRIVATE_KEY) < 1000 and os.path.exists(_priv_key_file):
+    with open(_priv_key_file, "r") as f:
+        ALIPAY_PRIVATE_KEY = f.read().strip()
+    logger.info("Loaded Alipay private key from file")
+
 
 def _format_key(key: str, key_type: str = "PRIVATE") -> str:
     """Format a key string into proper PEM format.
