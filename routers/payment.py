@@ -33,12 +33,11 @@ async def pay_create(request: Request, product_id: int = Form(...)):
 
     product = await db.get(Product, product_id)
     amount_yuan = f"{order.amount / 100:.2f}"
-    qr_url = create_qrcode_pay(order.order_no, amount_yuan, product.name)
+    pay_url = create_qrcode_pay(order.order_no, amount_yuan, product.name)
 
-    return templates.TemplateResponse(request, "pay/qrcode.html", _ctx(
-        request, user=user,
-        order=order, product=product, qr_url=qr_url,
-    ))
+    if pay_url:
+        return RedirectResponse(pay_url, status_code=302)
+    return RedirectResponse(f"/?error=payment_failed", status_code=302)
 
 
 @router.get("/qrcode/{order_no}")
@@ -52,11 +51,10 @@ async def pay_qrcode(request: Request, order_no: str):
         return RedirectResponse("/user/dashboard", status_code=302)
     product = await db.get(Product, order.product_id)
     amount_yuan = f"{order.amount / 100:.2f}"
-    qr_url = create_qrcode_pay(order.order_no, amount_yuan, product.name)
-    return templates.TemplateResponse(request, "pay/qrcode.html", _ctx(
-        request, user=user,
-        order=order, product=product, qr_url=qr_url,
-    ))
+    pay_url = create_qrcode_pay(order.order_no, amount_yuan, product.name)
+    if pay_url:
+        return RedirectResponse(pay_url, status_code=302)
+    return RedirectResponse(f"/?error=payment_failed", status_code=302)
 
 
 @router.post("/notify")

@@ -118,33 +118,23 @@ def _get_client() -> AliPay:
 
 
 def create_qrcode_pay(order_no: str, amount_yuan: str, subject: str) -> str:
-    """Create an Alipay face-to-face payment, return QR code URL or empty string."""
+    """Create an Alipay desktop website payment, return payment URL."""
     try:
         alipay = _get_client()
-        result = alipay.api_alipay_trade_precreate(
+        # 电脑网站支付
+        order_string = alipay.api_alipay_trade_page_pay(
             out_trade_no=order_no,
             total_amount=amount_yuan,
             subject=subject,
             notify_url=ALIPAY_NOTIFY_URL,
+            return_url=ALIPAY_NOTIFY_URL.replace("/notify", "/return"),
         )
-        logger.info(f"Alipay precreate result: {result}")
-        return result.get("qr_code", "")
+        # Build the full payment URL
+        pay_url = f"https://openapi.alipay.com/gateway.do?{order_string}"
+        logger.info(f"Alipay pay URL generated for order {order_no}")
+        return pay_url
     except Exception as e:
         logger.error(f"Alipay error: {type(e).__name__}: {e}")
-        # Try without signature verification for debugging
-        try:
-            import httpx
-            import json as _json
-            # Make raw API call to see the actual response
-            biz_content = _json.dumps({"out_trade_no": order_no, "total_amount": amount_yuan, "subject": subject})
-            logger.info(f"Raw biz_content: {biz_content}")
-            # Use the SDK's unsigned method
-            data = alipay._build_basic_params("alipay.trade.precreate")
-            data["biz_content"] = biz_content
-            resp = httpx.post(alipay._gateway, data=data)
-            logger.info(f"Raw Alipay response: {resp.text}")
-        except Exception as e2:
-            logger.error(f"Raw call also failed: {e2}")
         return ""
 
 
