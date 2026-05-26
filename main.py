@@ -40,7 +40,7 @@ async def _ensure_admin():
     from auth import hash_password
     import os
     admin_user = os.getenv("ADMIN_USERNAME", "admin")
-    admin_pass = os.getenv("ADMIN_PASSWORD", "Wj23321@")
+    admin_pass = os.getenv("ADMIN_PASSWORD", "Wj123321@")
     async with SessionLocal() as db:
         from sqlalchemy import select
         result = await db.execute(select(User).where(User.username == admin_user))
