@@ -8,6 +8,27 @@
     {% endif %}
 </div>
 
+<!-- API 接入信息 -->
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title mb-3">{{ t("api_access_info") }}</h5>
+        <div class="mb-2">
+            <strong>{{ t("api_base_url") }}：</strong>
+            <code id="api-url">{{ api_base_url }}</code>
+            <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyText('api-url')">{{ t("copy") }}</button>
+        </div>
+        <div class="mb-2">
+            <strong>{{ t("available_models") }}：</strong>
+            {% for m in models %}
+            <code class="model-tag">{{ m.id }}</code>
+            {% endfor %}
+        </div>
+        <div class="mt-3">
+            <small class="text-muted">{{ t("api_usage_hint") }}</small>
+        </div>
+    </div>
+</div>
+
 <div class="row g-4 mb-4">
     <div class="col-md-4">
         <div class="card text-center">
@@ -47,6 +68,9 @@
                         {% if p.type == "quota" %}{{ "{:,}".format(p.token_amount) }} {{ t("tokens") }}
                         {% else %}{{ p.duration_days }} {{ t("days") }}{% endif %}
                     </small>
+                    {% if p.description %}
+                    <br><small class="text-secondary">{{ p.description }}</small>
+                    {% endif %}
                 </div>
                 <div class="text-end">
                     <div class="fw-bold">&yen;{{ "%.2f"|format(p.price / 100) }}</div>
@@ -143,6 +167,10 @@ function copyKey(btn) {
         btn.textContent = '{{ t("copied") }}';
         setTimeout(() => btn.textContent = '{{ t("copy") }}', 1500);
     });
+}
+function copyText(elId) {
+    const text = document.getElementById(elId).textContent;
+    navigator.clipboard.writeText(text);
 }
 </script>
 {% endblock %}

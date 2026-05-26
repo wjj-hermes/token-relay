@@ -10,9 +10,12 @@
     <div class="card-body">
         <h5>{{ t("add_product") }}</h5>
         <form method="post" action="/admin/products/create">
-            <div class="row g-2">
+            <div class="row g-2 mb-2">
                 <div class="col-md-3">
                     <input type="text" name="name" class="form-control" placeholder="{{ t('product_name') }}" required>
+                </div>
+                <div class="col-md-4">
+                    <input type="text" name="description" class="form-control" placeholder="{{ t('product_desc') }}">
                 </div>
                 <div class="col-md-2">
                     <select name="type" class="form-select">
@@ -23,16 +26,18 @@
                 <div class="col-md-2">
                     <input type="number" name="price" class="form-control" placeholder="{{ t('price_fen') }}" required>
                 </div>
-                <div class="col-md-2">
+            </div>
+            <div class="row g-2">
+                <div class="col-md-3">
                     <input type="number" name="token_amount" class="form-control" placeholder="{{ t('token_amount') }}">
                 </div>
-                <div class="col-md-1">
+                <div class="col-md-3">
                     <input type="number" name="duration_days" class="form-control" placeholder="{{ t('duration_days') }}">
                 </div>
-                <div class="col-md-1">
+                <div class="col-md-3">
                     <input type="number" name="daily_limit" class="form-control" placeholder="{{ t('daily_limit_label') }}">
                 </div>
-                <div class="col-md-1">
+                <div class="col-md-3">
                     <button class="btn btn-primary w-100">{{ t("add_btn") }}</button>
                 </div>
             </div>

@@ -74,11 +74,12 @@ async def admin_products(request: Request):
 @router.post("/products/create")
 @require_admin
 async def create_product(request: Request, name: str = Form(...), type: str = Form(...),
-                         price: int = Form(...), token_amount: int = Form(0),
+                         price: int = Form(...), description: str = Form(""),
+                         token_amount: int = Form(0),
                          duration_days: int = Form(0), daily_limit: int = Form(0)):
     db = request.state.db
     product = Product(
-        name=name, type=type, price=price,
+        name=name, description=description, type=type, price=price,
         token_amount=token_amount, duration_days=duration_days, daily_limit=daily_limit,
     )
     db.add(product)

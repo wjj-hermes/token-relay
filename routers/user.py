@@ -1,4 +1,5 @@
 from datetime import datetime
+import os
 from fastapi import APIRouter, Request, Form
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -7,6 +8,7 @@ from sqlalchemy import select, func
 from auth import require_login
 from models import ApiKey, Order, UsageLog, Subscription, Product
 from services.key_service import create_api_key
+from relay import relay
 from i18n import get_lang, t as _t
 
 router = APIRouter(prefix="/user")
@@ -47,9 +49,13 @@ async def dashboard(request: Request):
     products_result = await db.execute(select(Product).where(Product.is_active == True))
     products = products_result.scalars().all()
 
+    models = relay.list_models()
+    api_base_url = os.getenv("API_BASE_URL", "https://token-relay-v2-production.up.railway.app") + "/v1"
+
     return templates.TemplateResponse(request, "user/dashboard.html", _ctx(
         request, user=user, keys=keys,
         orders=orders, subs=subs, total_used=total_used, products=products,
+        models=models, api_base_url=api_base_url,
     ))
 
 

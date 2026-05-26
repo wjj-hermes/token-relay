@@ -94,6 +94,7 @@ MESSAGES = {
         "enable": "启用",
         "add_product": "添加产品",
         "product_name": "产品名称",
+        "product_desc": "套餐介绍",
         "quota_pack": "额度包",
         "subscription": "订阅制",
         "price_fen": "价格(分)",
@@ -122,6 +123,10 @@ MESSAGES = {
         "go_dashboard": "进入控制台",
         "footer": "© 2026 Token Relay Station",
         "lang_switch": "EN",
+        "api_access_info": "API 接入信息",
+        "api_base_url": "API 地址",
+        "available_models": "可用模型",
+        "api_usage_hint": "使用上方 API Key，以 OpenAI 兼容格式调用，详见文档。",
     },
     "en": {
         "site_title": "Token Relay - API Key Store",
@@ -218,6 +223,7 @@ MESSAGES = {
         "enable": "Enable",
         "add_product": "Add Product",
         "product_name": "Name",
+        "product_desc": "Description",
         "quota_pack": "Quota Pack",
         "subscription": "Subscription",
         "price_fen": "Price (fen)",
@@ -246,6 +252,10 @@ MESSAGES = {
         "go_dashboard": "Go to Dashboard",
         "footer": "© 2026 Token Relay Station",
         "lang_switch": "中文",
+        "api_access_info": "API Access Info",
+        "api_base_url": "API Base URL",
+        "available_models": "Available Models",
+        "api_usage_hint": "Use your API key above with OpenAI-compatible format. See docs for details.",
     },
 }
 

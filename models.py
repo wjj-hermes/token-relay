@@ -39,6 +39,7 @@ class Product(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(100), nullable=False)
+    description = Column(String(500), default="")  # 套餐介绍
     type = Column(String(20), nullable=False)  # quota / subscription
     price = Column(Integer, nullable=False)  # 价格，单位：分
     token_amount = Column(Integer, default=0)  # 额度包 token 数

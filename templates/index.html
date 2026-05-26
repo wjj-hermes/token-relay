@@ -19,6 +19,9 @@
                 {% else %}
                 <p class="text-muted">{{ p.duration_days }} {{ t("days") }}{% if p.daily_limit %} / {{ t("daily_limit") }} {{ "{:,}".format(p.daily_limit) }} {{ t("tokens") }}{% else %} / {{ t("unlimited") }}{% endif %}</p>
                 {% endif %}
+                {% if p.description %}
+                <p class="text-secondary small">{{ p.description }}</p>
+                {% endif %}
                 <div class="mt-auto">
                     <span class="h3">&yen;{{ "%.2f"|format(p.price / 100) }}</span>
                     {% if user %}
