@@ -42,9 +42,9 @@ def decode_token(token: str) -> dict:
     try:
         return jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
     except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired")
+        raise HTTPException(status_code=401, detail="登录已过期")
     except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+        raise HTTPException(status_code=401, detail="无效的登录凭证")
 
 
 def get_current_user(request: Request):
@@ -83,7 +83,7 @@ def require_admin(func):
         async with SessionLocal() as db:
             user = await db.get(User, user_id)
             if not user or not user.is_admin:
-                raise HTTPException(status_code=403, detail="Admin access required")
+                raise HTTPException(status_code=403, detail="需要管理员权限")
             request.state.user = user
             request.state.db = db
             return await func(request, *args, **kwargs)

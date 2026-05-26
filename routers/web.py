@@ -35,9 +35,9 @@ async def login_submit(request: Request, username: str = Form(...), password: st
         result = await db.execute(select(User).where(User.username == username))
         user = result.scalar_one_or_none()
         if not user or not verify_password(password, user.password_hash):
-            return templates.TemplateResponse(request, "login.html", {"error": "Invalid credentials"})
+            return templates.TemplateResponse(request, "login.html", {"error": "用户名或密码错误"})
         if not user.is_active:
-            return templates.TemplateResponse(request, "login.html", {"error": "Account disabled"})
+            return templates.TemplateResponse(request, "login.html", {"error": "账号已被禁用"})
         token = create_token(user.id, user.is_admin)
         resp = RedirectResponse("/user/dashboard", status_code=302)
         resp.set_cookie("token", token, httponly=True, max_age=72 * 3600)
@@ -53,13 +53,13 @@ async def register_page(request: Request):
 async def register_submit(request: Request, username: str = Form(...), email: str = Form(...),
                           password: str = Form(...), password2: str = Form(...)):
     if password != password2:
-        return templates.TemplateResponse(request, "register.html", {"error": "Passwords do not match"})
+        return templates.TemplateResponse(request, "register.html", {"error": "两次密码不一致"})
     if len(password) < 6:
-        return templates.TemplateResponse(request, "register.html", {"error": "Password too short"})
+        return templates.TemplateResponse(request, "register.html", {"error": "密码长度不能少于6位"})
     async with SessionLocal() as db:
         existing = await db.execute(select(User).where((User.username == username) | (User.email == email)))
         if existing.scalar_one_or_none():
-            return templates.TemplateResponse(request, "register.html", {"error": "Username or email taken"})
+            return templates.TemplateResponse(request, "register.html", {"error": "用户名或邮箱已被注册"})
         user = User(username=username, email=email, password_hash=hash_password(password))
         db.add(user)
         await db.commit()

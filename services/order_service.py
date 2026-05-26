@@ -13,7 +13,7 @@ def generate_order_no() -> str:
 async def create_order(db: AsyncSession, user_id: int, product_id: int) -> Order:
     product = await db.get(Product, product_id)
     if not product or not product.is_active:
-        raise ValueError("Product not found or inactive")
+        raise ValueError("产品不存在或已下架")
 
     order = Order(
         user_id=user_id,

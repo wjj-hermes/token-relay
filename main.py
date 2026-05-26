@@ -60,11 +60,11 @@ async def _seed_products():
         if result.scalars().first():
             return
         defaults = [
-            Product(name="Starter Pack", type="quota", price=990, token_amount=100000),
-            Product(name="Pro Pack", type="quota", price=4990, token_amount=500000),
-            Product(name="Business Pack", type="quota", price=19900, token_amount=2000000),
-            Product(name="Monthly Basic", type="subscription", price=2990, duration_days=30, daily_limit=50000),
-            Product(name="Monthly Pro", type="subscription", price=9990, duration_days=30, daily_limit=200000),
+            Product(name="入门套餐", type="quota", price=990, token_amount=100000),
+            Product(name="专业套餐", type="quota", price=4990, token_amount=500000),
+            Product(name="企业套餐", type="quota", price=19900, token_amount=2000000),
+            Product(name="月度基础版", type="subscription", price=2990, duration_days=30, daily_limit=50000),
+            Product(name="月度专业版", type="subscription", price=9990, duration_days=30, daily_limit=200000),
         ]
         db.add_all(defaults)
         await db.commit()
@@ -101,12 +101,12 @@ async def chat_completions(request: Request):
     auth = request.headers.get("Authorization", "")
     raw_key = auth[7:] if auth.startswith("Bearer ") else auth
     if not raw_key:
-        raise HTTPException(status_code=401, detail="Missing API key")
+        raise HTTPException(status_code=401, detail="缺少 API Key")
 
     async with SessionLocal() as db:
         result = await validate_api_key(db, raw_key)
         if not result:
-            raise HTTPException(status_code=401, detail="Invalid API key")
+            raise HTTPException(status_code=401, detail="无效的 API Key")
         user, api_key = result
 
         # Check balance
@@ -117,12 +117,12 @@ async def chat_completions(request: Request):
         )
         subs = subs_result.scalars().all()
         if not await check_balance(user, subs):
-            raise HTTPException(status_code=402, detail="Insufficient balance")
+            raise HTTPException(status_code=402, detail="余额不足，请充值")
 
     body = await request.json()
     model = body.get("model", "")
     if not model:
-        raise HTTPException(status_code=400, detail="Missing 'model' field")
+        raise HTTPException(status_code=400, detail="缺少 model 参数")
     messages = body.get("messages", [])
     kwargs = {k: body[k] for k in ("temperature", "max_tokens", "top_p", "tools", "tool_choice", "stop") if k in body}
 

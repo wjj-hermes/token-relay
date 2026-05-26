@@ -1,27 +1,27 @@
 {% extends "base.html" %}
-{% block title %}Login - Token Relay{% endblock %}
+{% block title %}登录 - Token Relay{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-5">
         <div class="card">
             <div class="card-body">
-                <h3 class="card-title text-center mb-4">Login</h3>
+                <h3 class="card-title text-center mb-4">登录</h3>
                 {% if error %}
                 <div class="alert alert-danger">{{ error }}</div>
                 {% endif %}
                 <form method="post">
                     <div class="mb-3">
-                        <label class="form-label">Username</label>
+                        <label class="form-label">用户名</label>
                         <input type="text" name="username" class="form-control" required autofocus>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Password</label>
+                        <label class="form-label">密码</label>
                         <input type="password" name="password" class="form-control" required>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100">Login</button>
+                    <button type="submit" class="btn btn-primary w-100">登录</button>
                 </form>
                 <p class="text-center mt-3 mb-0">
-                    <a href="/register">Don't have an account? Register</a>
+                    <a href="/register">没有账号？立即注册</a>
                 </p>
             </div>
         </div>

@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Dashboard - Token Relay{% endblock %}
+{% block title %}控制台 - Token Relay{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>Welcome, {{ user.username }}</h2>
+    <h2>欢迎，{{ user.username }}</h2>
     {% if user.is_admin %}
-    <a href="/admin/dashboard" class="btn btn-outline-danger btn-sm">Admin Panel</a>
+    <a href="/admin/dashboard" class="btn btn-outline-danger btn-sm">管理后台</a>
     {% endif %}
 </div>
 
@@ -12,7 +12,7 @@
     <div class="col-md-4">
         <div class="card text-center">
             <div class="card-body">
-                <h6 class="text-muted">Token Balance</h6>
+                <h6 class="text-muted">Token 余额</h6>
                 <h2>{{ "{:,}".format(user.balance) }}</h2>
             </div>
         </div>
@@ -20,7 +20,7 @@
     <div class="col-md-4">
         <div class="card text-center">
             <div class="card-body">
-                <h6 class="text-muted">Total Used</h6>
+                <h6 class="text-muted">累计用量</h6>
                 <h2>{{ "{:,}".format(total_used) }}</h2>
             </div>
         </div>
@@ -28,7 +28,7 @@
     <div class="col-md-4">
         <div class="card text-center">
             <div class="card-body">
-                <h6 class="text-muted">API Keys</h6>
+                <h6 class="text-muted">API Key 数量</h6>
                 <h2>{{ keys|length }}</h2>
             </div>
         </div>
@@ -36,17 +36,17 @@
 </div>
 
 {% if subs %}
-<h5>Active Subscriptions</h5>
+<h5>生效中的订阅</h5>
 <div class="table-responsive mb-4">
     <table class="table table-sm">
-        <thead><tr><th>Plan</th><th>Expires</th><th>Daily Used</th><th>Daily Limit</th></tr></thead>
+        <thead><tr><th>套餐</th><th>到期时间</th><th>今日已用</th><th>每日上限</th></tr></thead>
         <tbody>
         {% for sub in subs %}
         <tr>
             <td>{{ sub.product.name if sub.product else '-' }}</td>
             <td>{{ sub.expire_at.strftime('%Y-%m-%d %H:%M') }}</td>
             <td>{{ "{:,}".format(sub.daily_used) }}</td>
-            <td>{{ "{:,}".format(sub.daily_limit) if sub.daily_limit else "Unlimited" }}</td>
+            <td>{{ "{:,}".format(sub.daily_limit) if sub.daily_limit else "不限" }}</td>
         </tr>
         {% endfor %}
         </tbody>
@@ -54,27 +54,27 @@
 </div>
 {% endif %}
 
-<h5>API Keys</h5>
+<h5>API Key 管理</h5>
 <form method="post" action="/user/keys/create" class="mb-3 d-flex gap-2">
-    <input type="text" name="name" class="form-control form-control-sm" placeholder="Key name" style="max-width:200px">
-    <button class="btn btn-sm btn-primary">Create New Key</button>
+    <input type="text" name="name" class="form-control form-control-sm" placeholder="备注名称" style="max-width:200px">
+    <button class="btn btn-sm btn-primary">创建新 Key</button>
 </form>
 {% if keys %}
 <div class="table-responsive mb-4">
     <table class="table table-sm">
-        <thead><tr><th>Name</th><th>Key</th><th>Created</th><th>Action</th></tr></thead>
+        <thead><tr><th>备注</th><th>Key</th><th>创建时间</th><th>操作</th></tr></thead>
         <tbody>
         {% for k in keys %}
         <tr>
             <td>{{ k.name }}</td>
             <td><code class="api-key-display" data-key="{{ k.key }}">{{ k.key[:12] }}...{{ k.key[-4:] }}</code>
-                <button class="btn btn-sm btn-outline-secondary ms-1 copy-btn" onclick="copyKey(this)">Copy</button>
+                <button class="btn btn-sm btn-outline-secondary ms-1 copy-btn" onclick="copyKey(this)">复制</button>
             </td>
             <td>{{ k.created_at.strftime('%Y-%m-%d') }}</td>
             <td>
                 <form method="post" action="/user/keys/{{ k.id }}/delete" class="d-inline"
-                      onsubmit="return confirm('Delete this key?')">
-                    <button class="btn btn-sm btn-outline-danger">Delete</button>
+                      onsubmit="return confirm('确定删除此 Key？')">
+                    <button class="btn btn-sm btn-outline-danger">删除</button>
                 </form>
             </td>
         </tr>
@@ -83,20 +83,20 @@
     </table>
 </div>
 {% else %}
-<p class="text-muted">No API keys yet. Create one above.</p>
+<p class="text-muted">暂无 API Key，请点击上方按钮创建。</p>
 {% endif %}
 
-<h5>Recent Orders</h5>
+<h5>最近订单</h5>
 {% if orders %}
 <div class="table-responsive">
     <table class="table table-sm">
-        <thead><tr><th>Order</th><th>Amount</th><th>Status</th><th>Time</th></tr></thead>
+        <thead><tr><th>订单号</th><th>金额</th><th>状态</th><th>时间</th></tr></thead>
         <tbody>
         {% for o in orders %}
         <tr>
             <td>{{ o.order_no[:16] }}...</td>
             <td>&yen;{{ "%.2f"|format(o.amount / 100) }}</td>
-            <td><span class="badge bg-{{ 'success' if o.status == 'paid' else 'warning' }}">{{ o.status }}</span></td>
+            <td><span class="badge bg-{{ 'success' if o.status == 'paid' else 'warning' }}">{{ '已支付' if o.status == 'paid' else '待支付' }}</span></td>
             <td>{{ o.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
         </tr>
         {% endfor %}
@@ -104,7 +104,7 @@
     </table>
 </div>
 {% else %}
-<p class="text-muted">No orders yet.</p>
+<p class="text-muted">暂无订单记录。</p>
 {% endif %}
 {% endblock %}
 
@@ -114,8 +114,8 @@ function copyKey(btn) {
     const code = btn.previousElementSibling;
     const key = code.dataset.key;
     navigator.clipboard.writeText(key).then(() => {
-        btn.textContent = 'Copied!';
-        setTimeout(() => btn.textContent = 'Copy', 1500);
+        btn.textContent = '已复制';
+        setTimeout(() => btn.textContent = '复制', 1500);
     });
 }
 </script>

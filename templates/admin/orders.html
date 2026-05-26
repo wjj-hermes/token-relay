@@ -1,13 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Orders - Token Relay{% endblock %}
+{% block title %}订单管理 - Token Relay{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>All Orders</h2>
-    <a href="/admin/dashboard" class="btn btn-outline-secondary btn-sm">Back</a>
+    <h2>全部订单</h2>
+    <a href="/admin/dashboard" class="btn btn-outline-secondary btn-sm">返回</a>
 </div>
 <div class="table-responsive">
     <table class="table table-hover table-sm">
-        <thead><tr><th>Order No</th><th>User ID</th><th>Product</th><th>Amount</th><th>Status</th><th>Alipay Trade</th><th>Time</th></tr></thead>
+        <thead><tr><th>订单号</th><th>用户ID</th><th>产品</th><th>金额</th><th>状态</th><th>支付宝交易号</th><th>时间</th></tr></thead>
         <tbody>
         {% for o in orders %}
         <tr>
@@ -15,7 +15,7 @@
             <td>{{ o.user_id }}</td>
             <td>{{ o.product.name if o.product else '-' }}</td>
             <td>&yen;{{ "%.2f"|format(o.amount / 100) }}</td>
-            <td><span class="badge bg-{{ 'success' if o.status == 'paid' else ('danger' if o.status == 'failed' else 'warning') }}">{{ o.status }}</span></td>
+            <td><span class="badge bg-{{ 'success' if o.status == 'paid' else ('danger' if o.status == 'failed' else 'warning') }}">{{ '已支付' if o.status == 'paid' else ('失败' if o.status == 'failed' else '待支付') }}</span></td>
             <td>{{ o.alipay_trade_no or '-' }}</td>
             <td>{{ o.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
         </tr>

@@ -1,35 +1,35 @@
 {% extends "base.html" %}
-{% block title %}Register - Token Relay{% endblock %}
+{% block title %}注册 - Token Relay{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-5">
         <div class="card">
             <div class="card-body">
-                <h3 class="card-title text-center mb-4">Register</h3>
+                <h3 class="card-title text-center mb-4">注册</h3>
                 {% if error %}
                 <div class="alert alert-danger">{{ error }}</div>
                 {% endif %}
                 <form method="post">
                     <div class="mb-3">
-                        <label class="form-label">Username</label>
+                        <label class="form-label">用户名</label>
                         <input type="text" name="username" class="form-control" required autofocus>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Email</label>
+                        <label class="form-label">邮箱</label>
                         <input type="email" name="email" class="form-control" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Password</label>
+                        <label class="form-label">密码</label>
                         <input type="password" name="password" class="form-control" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Confirm Password</label>
+                        <label class="form-label">确认密码</label>
                         <input type="password" name="password2" class="form-control" required>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100">Register</button>
+                    <button type="submit" class="btn btn-primary w-100">注册</button>
                 </form>
                 <p class="text-center mt-3 mb-0">
-                    <a href="/login">Already have an account? Login</a>
+                    <a href="/login">已有账号？立即登录</a>
                 </p>
             </div>
         </div>

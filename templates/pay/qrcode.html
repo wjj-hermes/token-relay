@@ -1,24 +1,24 @@
 {% extends "base.html" %}
-{% block title %}Pay - Token Relay{% endblock %}
+{% block title %}支付 - Token Relay{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-5">
         <div class="card">
             <div class="card-body text-center">
-                <h4>Scan to Pay</h4>
+                <h4>扫码支付</h4>
                 <p class="text-muted">{{ product.name }} &mdash; &yen;{{ "%.2f"|format(order.amount / 100) }}</p>
                 {% if qr_url %}
                 <div class="my-4">
-                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=280x280&data={{ qr_url }}" alt="QR Code" class="img-fluid">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=280x280&data={{ qr_url }}" alt="支付二维码" class="img-fluid">
                 </div>
-                <p class="text-muted small">Open Alipay and scan the QR code above</p>
+                <p class="text-muted small">请使用支付宝扫描上方二维码完成支付</p>
                 {% else %}
-                <div class="alert alert-warning">Failed to generate QR code. Please try again later.</div>
+                <div class="alert alert-warning">二维码生成失败，请稍后重试。</div>
                 {% endif %}
                 <div id="pay-status" class="mt-3">
-                    <span class="spinner-border spinner-border-sm"></span> Waiting for payment...
+                    <span class="spinner-border spinner-border-sm"></span> 等待支付中...
                 </div>
-                <p class="text-muted small mt-2">Order: {{ order.order_no }}</p>
+                <p class="text-muted small mt-2">订单号：{{ order.order_no }}</p>
             </div>
         </div>
     </div>
@@ -35,7 +35,7 @@ async function checkStatus() {
         const resp = await fetch("/pay/status/" + orderNo);
         const data = await resp.json();
         if (data.status === "paid") {
-            statusEl.innerHTML = '<div class="alert alert-success">Payment successful! <a href="/user/dashboard">Go to Dashboard</a></div>';
+            statusEl.innerHTML = '<div class="alert alert-success">支付成功！<a href="/user/dashboard">进入控制台</a></div>';
             return;
         }
     } catch (e) {}
