@@ -5,7 +5,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import select, func
 
 from auth import require_login
-from models import ApiKey, Order, UsageLog, Subscription
+from models import ApiKey, Order, UsageLog, Subscription, Product
 from services.key_service import create_api_key
 from i18n import get_lang, t as _t
 
@@ -44,9 +44,12 @@ async def dashboard(request: Request):
     )
     total_used = usage_result.scalar() or 0
 
+    products_result = await db.execute(select(Product).where(Product.is_active == True))
+    products = products_result.scalars().all()
+
     return templates.TemplateResponse(request, "user/dashboard.html", _ctx(
         request, user=user, keys=keys,
-        orders=orders, subs=subs, total_used=total_used,
+        orders=orders, subs=subs, total_used=total_used, products=products,
     ))
 
 

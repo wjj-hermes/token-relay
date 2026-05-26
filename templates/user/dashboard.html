@@ -35,6 +35,32 @@
     </div>
 </div>
 
+<h5>{{ t("buy_plan") }}</h5>
+<div class="row g-3 mb-4">
+    {% for p in products %}
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>{{ p.name }}</strong><br>
+                    <small class="text-muted">
+                        {% if p.type == "quota" %}{{ "{:,}".format(p.token_amount) }} {{ t("tokens") }}
+                        {% else %}{{ p.duration_days }} {{ t("days") }}{% endif %}
+                    </small>
+                </div>
+                <div class="text-end">
+                    <div class="fw-bold">&yen;{{ "%.2f"|format(p.price / 100) }}</div>
+                    <form method="post" action="/pay/create" class="d-inline">
+                        <input type="hidden" name="product_id" value="{{ p.id }}">
+                        <button class="btn btn-sm btn-primary mt-1">{{ t("recharge") }}</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
 {% if subs %}
 <h5>{{ t("active_subs") }}</h5>
 <div class="table-responsive mb-4">
