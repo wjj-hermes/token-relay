@@ -1,0 +1,8 @@
+__pycache__
+*.pyc
+.env
+*.db
+data/
+.wrangler/
+.git
+token-relay-deploy.zip

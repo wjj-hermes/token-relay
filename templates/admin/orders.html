@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Orders - Token Relay{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>All Orders</h2>
+    <a href="/admin/dashboard" class="btn btn-outline-secondary btn-sm">Back</a>
+</div>
+<div class="table-responsive">
+    <table class="table table-hover table-sm">
+        <thead><tr><th>Order No</th><th>User ID</th><th>Product</th><th>Amount</th><th>Status</th><th>Alipay Trade</th><th>Time</th></tr></thead>
+        <tbody>
+        {% for o in orders %}
+        <tr>
+            <td><small>{{ o.order_no }}</small></td>
+            <td>{{ o.user_id }}</td>
+            <td>{{ o.product.name if o.product else '-' }}</td>
+            <td>&yen;{{ "%.2f"|format(o.amount / 100) }}</td>
+            <td><span class="badge bg-{{ 'success' if o.status == 'paid' else ('danger' if o.status == 'failed' else 'warning') }}">{{ o.status }}</span></td>
+            <td>{{ o.alipay_trade_no or '-' }}</td>
+            <td>{{ o.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

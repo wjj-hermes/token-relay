@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Token Relay{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Welcome, {{ user.username }}</h2>
+    {% if user.is_admin %}
+    <a href="/admin/dashboard" class="btn btn-outline-danger btn-sm">Admin Panel</a>
+    {% endif %}
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="text-muted">Token Balance</h6>
+                <h2>{{ "{:,}".format(user.balance) }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="text-muted">Total Used</h6>
+                <h2>{{ "{:,}".format(total_used) }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="text-muted">API Keys</h6>
+                <h2>{{ keys|length }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if subs %}
+<h5>Active Subscriptions</h5>
+<div class="table-responsive mb-4">
+    <table class="table table-sm">
+        <thead><tr><th>Plan</th><th>Expires</th><th>Daily Used</th><th>Daily Limit</th></tr></thead>
+        <tbody>
+        {% for sub in subs %}
+        <tr>
+            <td>{{ sub.product.name if sub.product else '-' }}</td>
+            <td>{{ sub.expire_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td>{{ "{:,}".format(sub.daily_used) }}</td>
+            <td>{{ "{:,}".format(sub.daily_limit) if sub.daily_limit else "Unlimited" }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<h5>API Keys</h5>
+<form method="post" action="/user/keys/create" class="mb-3 d-flex gap-2">
+    <input type="text" name="name" class="form-control form-control-sm" placeholder="Key name" style="max-width:200px">
+    <button class="btn btn-sm btn-primary">Create New Key</button>
+</form>
+{% if keys %}
+<div class="table-responsive mb-4">
+    <table class="table table-sm">
+        <thead><tr><th>Name</th><th>Key</th><th>Created</th><th>Action</th></tr></thead>
+        <tbody>
+        {% for k in keys %}
+        <tr>
+            <td>{{ k.name }}</td>
+            <td><code class="api-key-display" data-key="{{ k.key }}">{{ k.key[:12] }}...{{ k.key[-4:] }}</code>
+                <button class="btn btn-sm btn-outline-secondary ms-1 copy-btn" onclick="copyKey(this)">Copy</button>
+            </td>
+            <td>{{ k.created_at.strftime('%Y-%m-%d') }}</td>
+            <td>
+                <form method="post" action="/user/keys/{{ k.id }}/delete" class="d-inline"
+                      onsubmit="return confirm('Delete this key?')">
+                    <button class="btn btn-sm btn-outline-danger">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p class="text-muted">No API keys yet. Create one above.</p>
+{% endif %}
+
+<h5>Recent Orders</h5>
+{% if orders %}
+<div class="table-responsive">
+    <table class="table table-sm">
+        <thead><tr><th>Order</th><th>Amount</th><th>Status</th><th>Time</th></tr></thead>
+        <tbody>
+        {% for o in orders %}
+        <tr>
+            <td>{{ o.order_no[:16] }}...</td>
+            <td>&yen;{{ "%.2f"|format(o.amount / 100) }}</td>
+            <td><span class="badge bg-{{ 'success' if o.status == 'paid' else 'warning' }}">{{ o.status }}</span></td>
+            <td>{{ o.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p class="text-muted">No orders yet.</p>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function copyKey(btn) {
+    const code = btn.previousElementSibling;
+    const key = code.dataset.key;
+    navigator.clipboard.writeText(key).then(() => {
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy', 1500);
+    });
+}
+</script>
+{% endblock %}

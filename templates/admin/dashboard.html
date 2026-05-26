@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard - Token Relay{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Admin Dashboard</h2>
+    <div>
+        <a href="/admin/users" class="btn btn-outline-primary btn-sm">Users</a>
+        <a href="/admin/products" class="btn btn-outline-primary btn-sm">Products</a>
+        <a href="/admin/orders" class="btn btn-outline-primary btn-sm">Orders</a>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="text-muted">Users</h6>
+                <h2>{{ user_count }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="text-muted">Orders</h6>
+                <h2>{{ order_count }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="text-muted">Revenue</h6>
+                <h2>&yen;{{ "%.2f"|format(revenue / 100) }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="text-muted">Tokens Used</h6>
+                <h2>{{ "{:,}".format(total_tokens) }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h5>Recent Orders</h5>
+<div class="table-responsive">
+    <table class="table table-sm table-hover">
+        <thead><tr><th>Order</th><th>User ID</th><th>Amount</th><th>Status</th><th>Time</th></tr></thead>
+        <tbody>
+        {% for o in recent_orders %}
+        <tr>
+            <td>{{ o.order_no[:16] }}...</td>
+            <td>{{ o.user_id }}</td>
+            <td>&yen;{{ "%.2f"|format(o.amount / 100) }}</td>
+            <td><span class="badge bg-{{ 'success' if o.status == 'paid' else 'warning' }}">{{ o.status }}</span></td>
+            <td>{{ o.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
