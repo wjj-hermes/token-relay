@@ -137,17 +137,36 @@ async def debug_alipay():
         alipay = _get_client()
         key_info["client_init"] = "SUCCESS"
 
-        # Try a test precreate
+        # Try raw API call to see actual response
         try:
-            result = alipay.api_alipay_trade_precreate(
-                out_trade_no="TEST_ORDER_001",
-                total_amount="0.01",
-                subject="测试商品",
-                notify_url=os.getenv("ALIPAY_NOTIFY_URL", ""),
-            )
-            key_info["precreate_result"] = result
+            import httpx, json as _json, time as _time
+            biz = _json.dumps({"out_trade_no": "TEST_ORDER_001", "total_amount": "0.01", "subject": "test"})
+            params = {
+                "app_id": "2021006156623714",
+                "method": "alipay.trade.precreate",
+                "format": "JSON",
+                "charset": "utf-8",
+                "sign_type": "RSA2",
+                "timestamp": "2026-05-26 12:00:00",
+                "version": "1.0",
+                "biz_content": biz,
+            }
+            # Sign params
+            unsigned = "&".join(f"{k}={params[k]}" for k in sorted(params))
+            from Crypto.Signature import pkcs1_15
+            from Crypto.Hash import SHA256
+            from Crypto.PublicKey import RSA
+            key = RSA.import_key(alipay._app_private_key)
+            h = SHA256.new(unsigned.encode())
+            signature = pkcs1_15.new(key).sign(h)
+            import base64 as _b64
+            params["sign"] = _b64.b64encode(signature).decode()
+            resp = httpx.post("https://openapi.alipay.com/gateway.do", data=params, timeout=15)
+            key_info["raw_response"] = resp.text[:1000]
         except Exception as e:
-            key_info["precreate_error"] = f"{type(e).__name__}: {e}"
+            import traceback
+            key_info["raw_error"] = f"{type(e).__name__}: {e}"
+            key_info["raw_traceback"] = traceback.format_exc()[-500:]
     except Exception as e:
         import traceback
         key_info["client_init"] = f"FAILED: {type(e).__name__}: {e}"
