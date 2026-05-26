@@ -22,6 +22,7 @@ async def lifespan(app: FastAPI):
     # Auto-create admin user if not exists
     await _ensure_admin()
     await _seed_products()
+    await _fix_products()
     await _seed_models()
     # Load models from database
     await relay.reload_from_db()
@@ -72,6 +73,33 @@ async def _seed_products():
         db.add_all(defaults)
         await db.commit()
         logger.info("Seeded default products")
+
+
+async def _fix_products():
+    """Fix corrupted subscription products."""
+    from models import Product
+    async with SessionLocal() as db:
+        from sqlalchemy import select
+        result = await db.execute(select(Product).where(Product.name.in_(["月度基础版", "月度专业版"])))
+        products = result.scalars().all()
+        fix_map = {
+            "入门套餐": {"type": "quota", "price": 990, "token_amount": 100000, "duration_days": 0, "daily_limit": 0},
+            "专业套餐": {"type": "quota", "price": 4990, "token_amount": 500000, "duration_days": 0, "daily_limit": 0},
+            "企业套餐": {"type": "quota", "price": 19900, "token_amount": 2000000, "duration_days": 0, "daily_limit": 0},
+            "月度基础版": {"type": "subscription", "price": 2990, "token_amount": 0, "duration_days": 30, "daily_limit": 50000},
+            "月度专业版": {"type": "subscription", "price": 9990, "token_amount": 0, "duration_days": 30, "daily_limit": 200000},
+        }
+        for p in products:
+            if p.name in fix_map:
+                f = fix_map[p.name]
+                changed = False
+                for k, v in f.items():
+                    if getattr(p, k) != v:
+                        setattr(p, k, v)
+                        changed = True
+                if changed:
+                    logger.info(f"Fixed product: {p.name}")
+        await db.commit()
 
 
 async def _seed_models():
