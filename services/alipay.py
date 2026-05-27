@@ -6,7 +6,7 @@ logger = logging.getLogger("alipay")
 
 ALIPAY_APP_ID = os.getenv("ALIPAY_APP_ID", "") or "2021006156623714"
 ALIPAY_PUBLIC_KEY = os.getenv("ALIPAY_PUBLIC_KEY", "") or "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0CaIaEIJ/dg8CjjUfWWJwqV7QFLLn3rJDlvIcIs9Xst5aVcM7GZ4D6RhLvKZb1l5Q5oFB6gJRi9AcBVSpcl9hvi+EOyD1+cYwzVR8qKA205a4poK5RBqZ1vzlFflD6KmEK4w5NiZqRq62kF2RA+WVr/+1rOJ0kcA9vtco5ptS55rYwlT+7bvpwQPkH+H5GsPNcPTRJt8O7I6gkKTQSVQp+g74GW7zm+ko0/TIAS/Nl60MZl40dhEHRd8VE/b5HXbVQpkKQ5KwQNb5puD6ZMZHGgYs8LOIpfbGnfa2O5/gQqlmWo0B6gh2mfqY5Uysj+ehwtgvvHcm1PLo2YjgzAsbwIDAQAB"
-ALIPAY_NOTIFY_URL = os.getenv("ALIPAY_NOTIFY_URL", "") or "https://token-relay-production-2904.up.railway.app/pay/notify"
+ALIPAY_NOTIFY_URL = os.getenv("ALIPAY_NOTIFY_URL", "") or "https://token-relay-v2-production.up.railway.app/pay/notify"
 IS_SANDBOX = os.getenv("ALIPAY_SANDBOX", "false").lower() == "true"
 
 # Load private key: env var -> file
