@@ -79,12 +79,7 @@ async def pay_notify(request: Request):
 @router.get("/return")
 async def pay_return(request: Request):
     """Alipay redirect-back after payment. Show success page."""
-    lang = get_lang(request)
-    return templates.TemplateResponse("pay/success.html", {
-        "lang": lang,
-        "t": lambda k: _t(lang, k),
-        "request": request,
-    })
+    return templates.TemplateResponse(request, "pay/success.html", _ctx(request))
 
 
 @router.get("/status/{order_no}")
