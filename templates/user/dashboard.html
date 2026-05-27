@@ -30,6 +30,43 @@
     </div>
 </div>
 
+<!-- API Key 管理 -->
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title mb-3">{{ t("key_mgmt") }}</h5>
+        <form method="post" action="/user/keys/create" class="mb-3 d-flex gap-2">
+            <input type="text" name="name" class="form-control form-control-sm" placeholder="{{ t('key_name_placeholder') }}" style="max-width:200px">
+            <button class="btn btn-sm btn-primary">{{ t("create_key") }}</button>
+        </form>
+        {% if keys %}
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead><tr><th>{{ t("name") }}</th><th>{{ t("key") }}</th><th>{{ t("created") }}</th><th>{{ t("action") }}</th></tr></thead>
+                <tbody>
+                {% for k in keys %}
+                <tr>
+                    <td>{{ k.name }}</td>
+                    <td><code class="api-key-display" data-key="{{ k.key }}">{{ k.key[:12] }}...{{ k.key[-4:] }}</code>
+                        <button class="btn btn-sm btn-outline-secondary ms-1 copy-btn" onclick="copyKey(this)">{{ t("copy") }}</button>
+                    </td>
+                    <td>{{ k.created_at.strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        <form method="post" action="/user/keys/{{ k.id }}/delete" class="d-inline"
+                              onsubmit="return confirm('{{ t("confirm_delete") }}')">
+                            <button class="btn btn-sm btn-outline-danger">{{ t("delete") }}</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">{{ t("no_keys") }}</p>
+        {% endif %}
+    </div>
+</div>
+
 <div class="row g-4 mb-4">
     <div class="col-md-4">
         <div class="card text-center">
@@ -103,38 +140,6 @@
         </tbody>
     </table>
 </div>
-{% endif %}
-
-<h5>{{ t("key_mgmt") }}</h5>
-<form method="post" action="/user/keys/create" class="mb-3 d-flex gap-2">
-    <input type="text" name="name" class="form-control form-control-sm" placeholder="{{ t('key_name_placeholder') }}" style="max-width:200px">
-    <button class="btn btn-sm btn-primary">{{ t("create_key") }}</button>
-</form>
-{% if keys %}
-<div class="table-responsive mb-4">
-    <table class="table table-sm">
-        <thead><tr><th>{{ t("name") }}</th><th>{{ t("key") }}</th><th>{{ t("created") }}</th><th>{{ t("action") }}</th></tr></thead>
-        <tbody>
-        {% for k in keys %}
-        <tr>
-            <td>{{ k.name }}</td>
-            <td><code class="api-key-display" data-key="{{ k.key }}">{{ k.key[:12] }}...{{ k.key[-4:] }}</code>
-                <button class="btn btn-sm btn-outline-secondary ms-1 copy-btn" onclick="copyKey(this)">{{ t("copy") }}</button>
-            </td>
-            <td>{{ k.created_at.strftime('%Y-%m-%d') }}</td>
-            <td>
-                <form method="post" action="/user/keys/{{ k.id }}/delete" class="d-inline"
-                      onsubmit="return confirm('{{ t("confirm_delete") }}')">
-                    <button class="btn btn-sm btn-outline-danger">{{ t("delete") }}</button>
-                </form>
-            </td>
-        </tr>
-        {% endfor %}
-        </tbody>
-    </table>
-</div>
-{% else %}
-<p class="text-muted">{{ t("no_keys") }}</p>
 {% endif %}
 
 <h5>{{ t("recent_orders") }}</h5>
