@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}{{ target.username }} - {{ t("usage_history") }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>{{ target.username }} {{ t("usage_history") }}</h2>
+    <a href="/admin/users" class="btn btn-outline-secondary btn-sm">{{ t("back") }}</a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="text-muted">{{ t("token_balance") }}</h6>
+                <h2>{{ "{:,}".format(target.balance) }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="text-muted">{{ t("total_used") }}</h6>
+                <h2>{{ "{:,}".format(total_used) }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="text-muted">{{ t("col_email") }}</h6>
+                <h5>{{ target.email }}</h5>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if usage_logs %}
+<div class="table-responsive">
+    <table class="table table-sm table-hover">
+        <thead><tr><th>{{ t("time") }}</th><th>{{ t("model") }}</th><th>{{ t("prompt_tokens") }}</th><th>{{ t("completion_tokens") }}</th><th>{{ t("cost_tokens") }}</th></tr></thead>
+        <tbody>
+        {% for log in usage_logs %}
+        <tr>
+            <td>{{ log.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td><code>{{ log.model }}</code></td>
+            <td>{{ "{:,}".format(log.prompt_tokens) }}</td>
+            <td>{{ "{:,}".format(log.completion_tokens) }}</td>
+            <td>{{ "{:,}".format(log.cost_tokens) }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p class="text-muted">{{ t("no_usage") }}</p>
+{% endif %}
+{% endblock %}

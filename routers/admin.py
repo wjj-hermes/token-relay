@@ -49,6 +49,31 @@ async def admin_users(request: Request):
     ))
 
 
+@router.get("/users/{user_id}/usage")
+@require_admin
+async def admin_user_usage(request: Request, user_id: int):
+    db = request.state.db
+    target = await db.get(User, user_id)
+    if not target:
+        return RedirectResponse("/admin/users", status_code=302)
+
+    usage_result = await db.execute(
+        select(func.sum(UsageLog.cost_tokens)).where(UsageLog.user_id == user_id)
+    )
+    total_used = usage_result.scalar() or 0
+
+    logs_result = await db.execute(
+        select(UsageLog).where(UsageLog.user_id == user_id)
+        .order_by(UsageLog.created_at.desc()).limit(100)
+    )
+    usage_logs = logs_result.scalars().all()
+
+    return templates.TemplateResponse(request, "admin/user_usage.html", _ctx(
+        request, user=request.state.user, target=target,
+        total_used=total_used, usage_logs=usage_logs,
+    ))
+
+
 @router.post("/users/{user_id}/toggle")
 @require_admin
 async def toggle_user(request: Request, user_id: int):
