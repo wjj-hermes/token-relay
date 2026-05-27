@@ -45,6 +45,12 @@ async def dashboard(request: Request):
     )
     total_used = usage_result.scalar() or 0
 
+    usage_logs_result = await db.execute(
+        select(UsageLog).where(UsageLog.user_id == user.id)
+        .order_by(UsageLog.created_at.desc()).limit(50)
+    )
+    usage_logs = usage_logs_result.scalars().all()
+
     products_result = await db.execute(select(Product).where(Product.is_active == True))
     products = products_result.scalars().all()
 
@@ -55,7 +61,7 @@ async def dashboard(request: Request):
     return templates.TemplateResponse(request, "user/dashboard.html", _ctx(
         request, user=user, keys=keys,
         orders=orders, subs=subs, total_used=total_used, products=products,
-        models=models, api_base_url=api_base_url,
+        models=models, api_base_url=api_base_url, usage_logs=usage_logs,
     ))
 
 

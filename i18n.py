@@ -138,6 +138,12 @@ MESSAGES = {
         "api_base_url": "API 地址",
         "available_models": "可用模型",
         "api_usage_hint": "使用上方 API Key，以 OpenAI 兼容格式调用，详见文档。",
+        "usage_history": "使用记录",
+        "prompt_tokens": "输入 Token",
+        "completion_tokens": "输出 Token",
+        "cost_tokens": "消耗 Token",
+        "model": "模型",
+        "no_usage": "暂无使用记录。",
     },
     "en": {
         "site_title": "Token Relay - API Key Store",
@@ -278,6 +284,12 @@ MESSAGES = {
         "api_base_url": "API Base URL",
         "available_models": "Available Models",
         "api_usage_hint": "Use your API key above with OpenAI-compatible format. See docs for details.",
+        "usage_history": "Usage History",
+        "prompt_tokens": "Prompt Tokens",
+        "completion_tokens": "Completion Tokens",
+        "cost_tokens": "Cost Tokens",
+        "model": "Model",
+        "no_usage": "No usage records yet.",
     },
 }
 

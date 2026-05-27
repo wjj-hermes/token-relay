@@ -157,6 +157,28 @@
 {% else %}
 <p class="text-muted">{{ t("no_orders") }}</p>
 {% endif %}
+
+<h5 class="mt-4">{{ t("usage_history") }}</h5>
+{% if usage_logs %}
+<div class="table-responsive">
+    <table class="table table-sm">
+        <thead><tr><th>{{ t("time") }}</th><th>{{ t("model") }}</th><th>{{ t("prompt_tokens") }}</th><th>{{ t("completion_tokens") }}</th><th>{{ t("cost_tokens") }}</th></tr></thead>
+        <tbody>
+        {% for log in usage_logs %}
+        <tr>
+            <td>{{ log.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td><code>{{ log.model }}</code></td>
+            <td>{{ "{:,}".format(log.prompt_tokens) }}</td>
+            <td>{{ "{:,}".format(log.completion_tokens) }}</td>
+            <td>{{ "{:,}".format(log.cost_tokens) }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p class="text-muted">{{ t("no_usage") }}</p>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
