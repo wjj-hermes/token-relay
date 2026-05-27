@@ -33,6 +33,15 @@
     "model": "{{ models[0].name if models else 'model-name' }}",
     "messages": [{"role": "user", "content": "Hello!"}]
   }'</code></pre>
+
+        <h5 class="mt-4">5. {{ t("hermes_config") }}</h5>
+        <p>{{ t("hermes_config_hint") }}</p>
+        <pre class="bg-dark text-light p-3 rounded"><code>model:
+  default: {{ models[0].name if models else 'model-name' }}
+  base_url: {{ api_base_url }}
+  api_key: YOUR_API_KEY
+  provider: custom</code></pre>
+        <p class="text-muted mt-2"><strong>{{ t("hermes_provider_note") }}</strong></p>
     </div>
 </div>
 {% endblock %}
