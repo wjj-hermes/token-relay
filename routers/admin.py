@@ -85,6 +85,17 @@ async def toggle_user(request: Request, user_id: int):
     return RedirectResponse("/admin/users", status_code=302)
 
 
+@router.post("/users/{user_id}/set_balance")
+@require_admin
+async def set_balance(request: Request, user_id: int, balance: int = Form(...)):
+    db = request.state.db
+    target = await db.get(User, user_id)
+    if target:
+        target.balance = balance
+        await db.commit()
+    return RedirectResponse("/admin/users", status_code=302)
+
+
 @router.get("/products")
 @require_admin
 async def admin_products(request: Request):

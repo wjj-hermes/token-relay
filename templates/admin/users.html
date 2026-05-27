@@ -27,6 +27,10 @@
                     </button>
                 </form>
                 {% endif %}
+                <form method="post" action="/admin/users/{{ u.id }}/set_balance" class="d-inline">
+                    <input type="number" name="balance" value="{{ u.balance }}" class="form-control form-control-sm d-inline" style="width:120px">
+                    <button class="btn btn-sm btn-outline-warning">{{ t("save") }}</button>
+                </form>
             </td>
         </tr>
         {% endfor %}
