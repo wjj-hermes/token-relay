@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}{{ t("usage_title") }} - Token Relay{% endblock %}
+{% block content %}
+<h3 class="mb-4">{{ t("usage_title") }}</h3>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h6 class="text-muted d-inline">{{ t("total_used") }}：</h6>
+        <h4 class="d-inline">{{ "{:,}".format(total_used) }}</h4>
+    </div>
+</div>
+
+{% if usage_logs %}
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead><tr><th>{{ t("time") }}</th><th>{{ t("model") }}</th><th>{{ t("prompt_tokens") }}</th><th>{{ t("completion_tokens") }}</th><th>{{ t("cost_tokens") }}</th></tr></thead>
+                <tbody>
+                {% for log in usage_logs %}
+                <tr>
+                    <td>{{ log.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td><code>{{ log.model }}</code></td>
+                    <td>{{ "{:,}".format(log.prompt_tokens) }}</td>
+                    <td>{{ "{:,}".format(log.completion_tokens) }}</td>
+                    <td>{{ "{:,}".format(log.cost_tokens) }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<p class="text-muted">{{ t("no_usage") }}</p>
+{% endif %}
+{% endblock %}

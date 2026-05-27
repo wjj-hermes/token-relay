@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}{{ t("profile_title") }} - Token Relay{% endblock %}
+{% block content %}
+<h3 class="mb-4">{{ t("profile_title") }}</h3>
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title mb-3">{{ t("username") }}</h5>
+                <p class="mb-0"><strong>{{ user.username }}</strong></p>
+                <small class="text-muted">{{ t("email") }}: {{ user.email }}</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title mb-3">{{ t("change_password") }}</h5>
+                {% if success %}
+                <div class="alert alert-success">{{ success }}</div>
+                {% endif %}
+                {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
+                <form method="post" action="/user/profile">
+                    <div class="mb-3">
+                        <label class="form-label">{{ t("old_password") }}</label>
+                        <input type="password" name="old_password" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ t("new_password") }}</label>
+                        <input type="password" name="new_password" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ t("confirm_new_password") }}</label>
+                        <input type="password" name="confirm_new_password" class="form-control" required>
+                    </div>
+                    <button class="btn btn-primary">{{ t("save_profile") }}</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

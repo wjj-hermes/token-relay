@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ t("guide_title") }} - Token Relay{% endblock %}
+{% block content %}
+<h3 class="mb-4">{{ t("guide_title") }}</h3>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <p class="lead">{{ t("guide_intro") }}</p>
+
+        <h5 class="mt-4">1. {{ t("create_key") }}</h5>
+        <p>{{ t("key_mgmt") }} &rarr; {{ t("create_key") }}</p>
+
+        <h5 class="mt-4">2. {{ t("api_base_url") }}</h5>
+        <div class="mb-3">
+            <code class="fs-6">{{ api_base_url }}</code>
+        </div>
+
+        <h5 class="mt-4">3. {{ t("available_models") }}</h5>
+        <ul class="list-group mb-3">
+            {% for m in models %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <code>{{ m.name }}</code>
+                <span class="badge bg-secondary">{{ m.model_id }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+
+        <h5 class="mt-4">4. {{ t("api_usage_hint") }}</h5>
+        <pre class="bg-dark text-light p-3 rounded"><code>curl {{ api_base_url }}/chat/completions \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "{{ models[0].name if models else 'model-name' }}",
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }'</code></pre>
+    </div>
+</div>
+{% endblock %}

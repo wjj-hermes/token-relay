@@ -123,25 +123,6 @@
     {% endfor %}
 </div>
 
-{% if subs %}
-<h5>{{ t("active_subs") }}</h5>
-<div class="table-responsive mb-4">
-    <table class="table table-sm">
-        <thead><tr><th>{{ t("plan") }}</th><th>{{ t("expires") }}</th><th>{{ t("daily_used") }}</th><th>{{ t("daily_upper_limit") }}</th></tr></thead>
-        <tbody>
-        {% for sub in subs %}
-        <tr>
-            <td>{{ sub.product.name if sub.product else '-' }}</td>
-            <td>{{ sub.expire_at.strftime('%Y-%m-%d %H:%M') }}</td>
-            <td>{{ "{:,}".format(sub.daily_used) }}</td>
-            <td>{{ "{:,}".format(sub.daily_limit) if sub.daily_limit else t("no_limit") }}</td>
-        </tr>
-        {% endfor %}
-        </tbody>
-    </table>
-</div>
-{% endif %}
-
 <h5>{{ t("recent_orders") }}</h5>
 {% if orders %}
 <div class="table-responsive">
@@ -161,28 +142,6 @@
 </div>
 {% else %}
 <p class="text-muted">{{ t("no_orders") }}</p>
-{% endif %}
-
-<h5 class="mt-4">{{ t("usage_history") }}</h5>
-{% if usage_logs %}
-<div class="table-responsive">
-    <table class="table table-sm">
-        <thead><tr><th>{{ t("time") }}</th><th>{{ t("model") }}</th><th>{{ t("prompt_tokens") }}</th><th>{{ t("completion_tokens") }}</th><th>{{ t("cost_tokens") }}</th></tr></thead>
-        <tbody>
-        {% for log in usage_logs %}
-        <tr>
-            <td>{{ log.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-            <td><code>{{ log.model }}</code></td>
-            <td>{{ "{:,}".format(log.prompt_tokens) }}</td>
-            <td>{{ "{:,}".format(log.completion_tokens) }}</td>
-            <td>{{ "{:,}".format(log.cost_tokens) }}</td>
-        </tr>
-        {% endfor %}
-        </tbody>
-    </table>
-</div>
-{% else %}
-<p class="text-muted">{{ t("no_usage") }}</p>
 {% endif %}
 {% endblock %}
 

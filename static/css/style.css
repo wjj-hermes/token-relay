@@ -1,27 +1,179 @@
+:root {
+    --bg: #f8f9fa;
+    --bg-card: #fff;
+    --text: #212529;
+    --text-muted: #6c757d;
+    --border: #dee2e6;
+    --sidebar-bg: #212529;
+    --sidebar-text: rgba(255,255,255,.75);
+    --sidebar-active: rgba(255,255,255,.1);
+}
+.dark-mode {
+    --bg: #1a1a2e;
+    --bg-card: #16213e;
+    --text: #e0e0e0;
+    --text-muted: #8899aa;
+    --border: #2a2a4a;
+    --sidebar-bg: #0f0f23;
+    --sidebar-text: rgba(255,255,255,.65);
+    --sidebar-active: rgba(255,255,255,.08);
+}
 body {
-    background-color: #f8f9fa;
+    background-color: var(--bg);
+    color: var(--text);
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-}
-main {
-    flex: 1;
+    transition: background-color .3s, color .3s;
 }
 .card {
     border: none;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    background-color: var(--bg-card);
+    color: var(--text);
 }
+.dark-mode .card {
+    box-shadow: 0 1px 3px rgba(0,0,0,.3);
+}
+.dark-mode .table {
+    color: var(--text);
+    --bs-table-bg: transparent;
+    --bs-table-hover-bg: rgba(255,255,255,.04);
+}
+.dark-mode .table-striped > tbody > tr:nth-of-type(odd) > * {
+    --bs-table-bg: rgba(255,255,255,.02);
+}
+.dark-mode .form-control, .dark-mode .form-select {
+    background-color: #1a1a2e;
+    border-color: var(--border);
+    color: var(--text);
+}
+.dark-mode .form-control:focus {
+    background-color: #1a1a2e;
+    color: var(--text);
+}
+.dark-mode .badge {
+    opacity: .9;
+}
+.dark-mode .text-muted { color: var(--text-muted) !important; }
+.dark-mode .text-secondary { color: var(--text-muted) !important; }
+.dark-mode .text-dark { color: var(--text) !important; }
+.dark-mode .bg-light { background-color: var(--bg-card) !important; }
 .navbar-brand {
     font-weight: 700;
 }
 .api-key-display {
     user-select: all;
-    font-size: 0.85em;
+    font-size: .85em;
 }
 .model-tag {
     background: #e9ecef;
     padding: 2px 8px;
     border-radius: 4px;
-    font-size: 0.85em;
+    font-size: .85em;
     margin-right: 4px;
+}
+.dark-mode .model-tag {
+    background: #2a2a4a;
+    color: var(--text);
+}
+main { flex: 1; }
+.has-sidebar main { flex: 1; }
+code {
+    color: #d63384;
+}
+.dark-mode code {
+    color: #e689b8;
+}
+
+/* Sidebar */
+.sidebar {
+    position: fixed;
+    top: 56px;
+    left: 0;
+    bottom: 0;
+    width: 220px;
+    background: var(--sidebar-bg);
+    display: flex;
+    flex-direction: column;
+    z-index: 1030;
+    transition: transform .3s;
+    overflow-y: auto;
+}
+.sidebar-nav {
+    flex: 1;
+    padding: .75rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: .6rem 1.25rem;
+    color: var(--sidebar-text);
+    text-decoration: none;
+    font-size: .9rem;
+    transition: background .15s, color .15s;
+    border-radius: 0;
+}
+.sidebar-link:hover {
+    background: var(--sidebar-active);
+    color: #fff;
+}
+.sidebar-link.active {
+    background: var(--sidebar-active);
+    color: #fff;
+    font-weight: 600;
+}
+.sidebar-link svg {
+    flex-shrink: 0;
+    opacity: .8;
+}
+.sidebar-link.active svg,
+.sidebar-link:hover svg {
+    opacity: 1;
+}
+.sidebar-footer {
+    padding: .75rem 0;
+    border-top: 1px solid rgba(255,255,255,.1);
+}
+.theme-toggle {
+    width: 100%;
+    border: none;
+    background: none;
+    cursor: pointer;
+    text-align: left;
+}
+
+/* Main content with sidebar */
+.main-with-sidebar {
+    margin-left: 220px;
+    padding: 1.5rem 2rem;
+    max-width: 100%;
+}
+
+/* Mobile sidebar */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,.5);
+    z-index: 1029;
+}
+@media (max-width: 991.98px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+    .sidebar-open .sidebar {
+        transform: translateX(0);
+    }
+    .sidebar-open .sidebar-overlay {
+        display: block;
+    }
+    .main-with-sidebar {
+        margin-left: 0;
+        padding: 1rem;
+    }
 }
