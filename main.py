@@ -144,6 +144,28 @@ async def health():
     return {"status": "ok", "models": relay.list_models()}
 
 
+@app.get("/debug/key/{key}")
+async def debug_key(key: str):
+    """Debug endpoint to check API key status."""
+    from sqlalchemy import select
+    from models import ApiKey, User
+    async with SessionLocal() as db:
+        result = await db.execute(select(ApiKey).where(ApiKey.key == key))
+        api_key = result.scalar_one_or_none()
+        if not api_key:
+            return {"found": False, "reason": "Key not found in database"}
+        user = await db.get(User, api_key.user_id)
+        return {
+            "found": True,
+            "key_id": api_key.id,
+            "key_active": api_key.is_active,
+            "user_id": api_key.user_id,
+            "user_exists": user is not None,
+            "user_active": user.is_active if user else None,
+            "user_balance": user.balance if user else None,
+        }
+
+
 @app.get("/debug/alipay")
 async def debug_alipay():
     import os
