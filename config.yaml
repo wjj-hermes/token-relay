@@ -7,7 +7,7 @@ server:
 
 providers:
   custom:
-    enabled: true
+    enabled: false
     base_url: "https://integrate.api.nvidia.com/v1"
     api_keys:
       - "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"

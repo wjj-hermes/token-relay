@@ -115,7 +115,7 @@ async def _seed_models():
         if result.scalars().first():
             return
         default = LLMModel(
-            name="deepseek-v4-flash",
+            name="deepseek-ai/deepseek-v4-flash",
             model_id="deepseek-ai/deepseek-v4-flash",
             base_url="https://integrate.api.nvidia.com/v1",
             api_key="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",
