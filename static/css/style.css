@@ -1,22 +1,26 @@
 :root {
-    --bg: #f8f9fa;
-    --bg-card: #fff;
-    --text: #212529;
-    --text-muted: #6c757d;
-    --border: #dee2e6;
-    --sidebar-bg: #212529;
-    --sidebar-text: rgba(255,255,255,.75);
-    --sidebar-active: rgba(255,255,255,.1);
+    --bg: #f4f7f5;
+    --bg-card: #ffffff;
+    --text: #1e2d24;
+    --text-muted: #5a6b5f;
+    --border: #d4ddd6;
+    --sidebar-bg: #1b2e22;
+    --sidebar-text: rgba(255,255,255,.72);
+    --sidebar-active: rgba(100,200,120,.12);
+    --accent: #3d9960;
+    --accent-light: #e8f5ec;
 }
 .dark-mode {
-    --bg: #1a1a2e;
-    --bg-card: #16213e;
-    --text: #e0e0e0;
-    --text-muted: #8899aa;
-    --border: #2a2a4a;
-    --sidebar-bg: #0f0f23;
-    --sidebar-text: rgba(255,255,255,.65);
-    --sidebar-active: rgba(255,255,255,.08);
+    --bg: #0f1a14;
+    --bg-card: #162119;
+    --text: #d8e4dc;
+    --text-muted: #7a9985;
+    --border: #243a2b;
+    --sidebar-bg: #0a140e;
+    --sidebar-text: rgba(255,255,255,.6);
+    --sidebar-active: rgba(100,200,120,.1);
+    --accent: #4db870;
+    --accent-light: #1a2e20;
 }
 body {
     background-color: var(--bg);
@@ -27,13 +31,13 @@ body {
     transition: background-color .3s, color .3s;
 }
 .card {
-    border: none;
-    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
     background-color: var(--bg-card);
     color: var(--text);
 }
 .dark-mode .card {
-    box-shadow: 0 1px 3px rgba(0,0,0,.3);
+    box-shadow: 0 1px 3px rgba(0,0,0,.25);
 }
 .dark-mode .table {
     color: var(--text);
@@ -67,15 +71,16 @@ body {
     font-size: .85em;
 }
 .model-tag {
-    background: #e9ecef;
+    background: var(--accent-light);
     padding: 2px 8px;
     border-radius: 4px;
     font-size: .85em;
     margin-right: 4px;
+    color: var(--accent);
 }
 .dark-mode .model-tag {
-    background: #2a2a4a;
-    color: var(--text);
+    background: rgba(77,184,112,.12);
+    color: var(--accent);
 }
 main { flex: 1; }
 .has-sidebar main { flex: 1; }
@@ -124,7 +129,7 @@ code {
 }
 .sidebar-link.active {
     background: var(--sidebar-active);
-    color: #fff;
+    color: #8fe8a8;
     font-weight: 600;
 }
 .sidebar-link svg {
@@ -145,6 +150,31 @@ code {
     background: none;
     cursor: pointer;
     text-align: left;
+}
+
+/* Green accent */
+.navbar-dark.bg-dark {
+    background-color: #162119 !important;
+}
+.btn-primary {
+    background-color: var(--accent);
+    border-color: var(--accent);
+}
+.btn-primary:hover {
+    background-color: #2e8a4e;
+    border-color: #2e8a4e;
+}
+.badge.bg-success {
+    background-color: var(--accent) !important;
+}
+a {
+    color: var(--accent);
+}
+a:hover {
+    color: #2e8a4e;
+}
+.dark-mode .navbar-dark.bg-dark {
+    background-color: #0a140e !important;
 }
 
 /* Main content with sidebar */
