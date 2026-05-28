@@ -392,7 +392,15 @@ async def responses_api(request: Request):
                             await deduct_usage(db, u, ak, model,
                                                usage_data.get("prompt_tokens", 0),
                                                usage_data.get("completion_tokens", 0))
-        return StreamingResponse(event_stream(), media_type="text/event-stream")
+        return StreamingResponse(
+            event_stream(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            }
+        )
 
     try:
         result = await relay.chat(model, messages, **kwargs)
