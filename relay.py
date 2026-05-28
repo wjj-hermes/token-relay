@@ -37,14 +37,18 @@ class Relay:
                 self.model_map[display_name] = name
                 logger.info(f"Registered model: {display_name} -> {name}")
 
+    @staticmethod
+    def _normalize(name: str) -> str:
+        return name.lower().replace("-", "").replace("_", "").replace(".", "")
+
     def _find_provider(self, model: str) -> Tuple[BaseProvider, str]:
         if model in self.model_map:
             name = self.model_map[model]
             return self.providers[name], name
-        # Case-insensitive fallback
-        lower = model.lower()
+        # Fuzzy fallback: ignore case, hyphens, underscores, dots
+        norm = self._normalize(model)
         for display_name, provider_name in self.model_map.items():
-            if display_name.lower() == lower:
+            if self._normalize(display_name) == norm:
                 return self.providers[provider_name], provider_name
         if self.providers:
             name = next(iter(self.providers))

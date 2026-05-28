@@ -19,13 +19,17 @@ class BaseProvider(ABC):
     async def chat_stream(self, model: str, messages: list, **kwargs) -> AsyncIterator[dict]:
         ...
 
+    @staticmethod
+    def _normalize(name: str) -> str:
+        return name.lower().replace("-", "").replace("_", "").replace(".", "")
+
     def resolve_model(self, model: str) -> str:
         if model in self.models:
             return self.models[model]
-        # Case-insensitive fallback
-        lower = model.lower()
+        # Fuzzy fallback: ignore case, hyphens, underscores, dots
+        norm = self._normalize(model)
         for k, v in self.models.items():
-            if k.lower() == lower:
+            if self._normalize(k) == norm:
                 return v
         return model
 
