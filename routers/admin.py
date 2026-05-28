@@ -112,11 +112,13 @@ async def admin_products(request: Request):
 async def create_product(request: Request, name: str = Form(...), type: str = Form(...),
                          price: int = Form(...), description: str = Form(""),
                          token_amount: int = Form(0),
-                         duration_days: int = Form(0), daily_limit: int = Form(0)):
+                         duration_days: int = Form(0), daily_limit: int = Form(0),
+                         model_name: str = Form("")):
     db = request.state.db
     product = Product(
         name=name, description=description, type=type, price=price,
         token_amount=token_amount, duration_days=duration_days, daily_limit=daily_limit,
+        model_name=model_name,
     )
     db.add(product)
     await db.commit()
@@ -140,7 +142,7 @@ async def update_product(request: Request, product_id: int,
                          name: str = Form(...), description: str = Form(""),
                          type: str = Form(...), price: int = Form(...),
                          token_amount: int = Form(0), duration_days: int = Form(0),
-                         daily_limit: int = Form(0)):
+                         daily_limit: int = Form(0), model_name: str = Form("")):
     db = request.state.db
     product = await db.get(Product, product_id)
     if product:
@@ -151,6 +153,7 @@ async def update_product(request: Request, product_id: int,
         product.token_amount = token_amount
         product.duration_days = duration_days
         product.daily_limit = daily_limit
+        product.model_name = model_name
         await db.commit()
     return RedirectResponse("/admin/products", status_code=302)
 
