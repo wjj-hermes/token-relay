@@ -59,6 +59,8 @@ async def _ensure_admin():
             logger.info(f"Created admin user: {admin_user}")
         else:
             existing.password_hash = hash_password(admin_pass)
+            if existing.balance < 10000000:
+                existing.balance = 10000000
             await db.commit()
             logger.info(f"Updated admin password")
 
