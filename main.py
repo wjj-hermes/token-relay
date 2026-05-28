@@ -266,6 +266,134 @@ async def chat_completions(request: Request):
         return JSONResponse({"error": {"message": str(e), "type": "server_error"}}, status_code=502)
 
 
+@app.post("/v1/responses")
+async def responses_api(request: Request):
+    """OpenAI Responses API compatible endpoint, converts to Chat Completions internally."""
+    auth = request.headers.get("Authorization", "")
+    raw_key = auth[7:] if auth.startswith("Bearer ") else auth
+    if not raw_key:
+        raise HTTPException(status_code=401, detail="缺少 API Key")
+
+    async with SessionLocal() as db:
+        result = await validate_api_key(db, raw_key)
+        if not result:
+            raise HTTPException(status_code=401, detail="无效的 API Key")
+        user, api_key = result
+        from sqlalchemy import select
+        from models import Subscription
+        subs_result = await db.execute(select(Subscription).where(Subscription.user_id == user.id))
+        subs = subs_result.scalars().all()
+        if not await check_balance(user, subs):
+            raise HTTPException(status_code=402, detail="余额不足，请充值")
+
+    body = await request.json()
+    model = body.get("model", "")
+    if not model:
+        raise HTTPException(status_code=400, detail="缺少 model 参数")
+
+    # Convert Responses API input to messages
+    raw_input = body.get("input", "")
+    if isinstance(raw_input, str):
+        messages = [{"role": "user", "content": raw_input}]
+    elif isinstance(raw_input, list):
+        messages = []
+        for item in raw_input:
+            if isinstance(item, str):
+                messages.append({"role": "user", "content": item})
+            elif isinstance(item, dict):
+                role = item.get("role", "user")
+                content = item.get("content", "")
+                if isinstance(content, list):
+                    text_parts = [c.get("text", "") for c in content if isinstance(c, dict) and c.get("type") == "text"]
+                    content = "\n".join(text_parts)
+                messages.append({"role": role, "content": content})
+    else:
+        messages = [{"role": "user", "content": str(raw_input)}]
+
+    kwargs = {}
+    if "max_output_tokens" in body:
+        kwargs["max_tokens"] = body["max_output_tokens"]
+    if "temperature" in body:
+        kwargs["temperature"] = body["temperature"]
+
+    is_stream = body.get("stream", False)
+
+    if is_stream:
+        async def event_stream():
+            usage_data = {}
+            resp_id = f"resp_{int(time.time())}"
+            try:
+                async for chunk in relay.chat_stream(model, messages, **kwargs):
+                    if "usage" in chunk:
+                        usage_data = chunk["usage"]
+                    # Convert chunk to Responses API format
+                    delta = chunk.get("choices", [{}])[0].get("delta", {})
+                    if delta.get("content"):
+                        event = {
+                            "type": "response.output_text.delta",
+                            "item_id": f"msg_{resp_id}",
+                            "delta": delta["content"]
+                        }
+                        yield f"data: {json.dumps(event)}\n\n"
+                yield "data: [DONE]\n\n"
+            except Exception as e:
+                yield f"data: {json.dumps({'error': {'message': str(e)}})}\n\n"
+            finally:
+                if usage_data:
+                    async with SessionLocal() as db:
+                        u = await db.get(type(user), user.id)
+                        ak = await db.get(type(api_key), api_key.id)
+                        if u and ak:
+                            await deduct_usage(db, u, ak, model,
+                                               usage_data.get("prompt_tokens", 0),
+                                               usage_data.get("completion_tokens", 0))
+        return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+    try:
+        result = await relay.chat(model, messages, **kwargs)
+        usage = result.get("usage", {})
+        async with SessionLocal() as db:
+            u = await db.get(type(user), user.id)
+            ak = await db.get(type(api_key), api_key.id)
+            if u and ak:
+                await deduct_usage(db, u, ak, model,
+                                   usage.get("prompt_tokens", 0),
+                                   usage.get("completion_tokens", 0))
+
+        # Convert to Responses API format
+        choice = result.get("choices", [{}])[0]
+        message = choice.get("message", {})
+        content_text = message.get("content", "") or ""
+        resp_id = f"resp_{int(time.time())}"
+        response = {
+            "id": resp_id,
+            "object": "response",
+            "created": result.get("created", int(time.time())),
+            "model": model,
+            "output": [
+                {
+                    "type": "message",
+                    "id": f"msg_{resp_id}",
+                    "role": "assistant",
+                    "content": [
+                        {
+                            "type": "output_text",
+                            "text": content_text
+                        }
+                    ]
+                }
+            ],
+            "usage": {
+                "input_tokens": usage.get("prompt_tokens", 0),
+                "output_tokens": usage.get("completion_tokens", 0),
+                "total_tokens": usage.get("total_tokens", 0)
+            }
+        }
+        return JSONResponse(response)
+    except Exception as e:
+        return JSONResponse({"error": {"message": str(e), "type": "server_error"}}, status_code=502)
+
+
 # Legacy dashboard endpoint (redirect to new admin)
 @app.get("/dashboard", response_class=HTMLResponse)
 async def legacy_dashboard(request: Request):
