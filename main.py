@@ -338,12 +338,14 @@ async def responses_api(request: Request):
     if isinstance(raw_input, str):
         messages.append({"role": "user", "content": raw_input})
     elif isinstance(raw_input, list):
-        messages = []
         for item in raw_input:
             if isinstance(item, str):
                 messages.append({"role": "user", "content": item})
             elif isinstance(item, dict):
                 role = item.get("role", "user")
+                # developer -> system for upstream compatibility
+                if role == "developer":
+                    role = "system"
                 content = item.get("content", "")
                 if isinstance(content, list):
                     text_parts = [c.get("text", "") for c in content if isinstance(c, dict) and c.get("type") == "text"]
