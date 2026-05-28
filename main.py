@@ -299,6 +299,17 @@ async def responses_api(request: Request):
         raw_key = request.headers.get("X-API-Key", "")
     if not raw_key:
         raw_key = request.query_params.get("api_key", "")
+    # Try to get from request body
+    if not raw_key:
+        try:
+            body_bytes = await request.body()
+            body_text = body_bytes.decode()
+            import re
+            key_match = re.search(r'"api_key"\s*:\s*"([^"]+)"', body_text)
+            if key_match:
+                raw_key = key_match.group(1)
+        except:
+            pass
     if not raw_key:
         raise HTTPException(status_code=401, detail="缺少 API Key")
 
