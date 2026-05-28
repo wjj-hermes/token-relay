@@ -288,11 +288,16 @@ async def chat_completions(request: Request):
         return JSONResponse({"error": {"message": str(e), "type": "server_error"}}, status_code=502)
 
 
+_last_request_body = {}
+
+@app.get("/debug/last_request")
+async def debug_last_request():
+    return _last_request_body
+
 @app.post("/v1/responses")
 async def responses_api(request: Request):
     """OpenAI Responses API compatible endpoint, converts to Chat Completions internally."""
-    # Log all incoming headers for debugging
-    logger.info(f"Responses API request headers: {dict(request.headers)}")
+    global _last_request_body
     # Try multiple auth sources
     auth = request.headers.get("Authorization", "")
     raw_key = auth[7:] if auth.startswith("Bearer ") else auth
@@ -321,12 +326,10 @@ async def responses_api(request: Request):
                 user, api_key = result
 
     body = await request.json()
+    _last_request_body = {k: (v[:500] if isinstance(v, str) else v) for k, v in body.items()}
     model = body.get("model", "")
     if not model:
         raise HTTPException(status_code=400, detail="缺少 model 参数")
-
-    # Convert Responses API input to messages
-    logger.info(f"Responses API body keys: {list(body.keys())}, instructions={repr(body.get('instructions', ''))[:200]}")
     instructions = body.get("instructions", "")
     raw_input = body.get("input", "")
     messages = []
