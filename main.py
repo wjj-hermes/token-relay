@@ -24,6 +24,8 @@ async def lifespan(app: FastAPI):
     await _seed_products()
     await _fix_products()
     await _seed_models()
+    await _ensure_gpt55()
+    await _ensure_codex_key()
     # Load models from database
     await relay.reload_from_db()
     logger.info(f"Token Relay starting on {config['server']['host']}:{config['server']['port']}")
@@ -123,6 +125,45 @@ async def _seed_models():
         db.add(default)
         await db.commit()
         logger.info("Seeded default model")
+
+
+async def _ensure_gpt55():
+    from models import LLMModel
+    async with SessionLocal() as db:
+        from sqlalchemy import select
+        result = await db.execute(select(LLMModel).where(LLMModel.name == "GPT5.5"))
+        if result.scalar_one_or_none():
+            return
+        m = LLMModel(
+            name="GPT5.5",
+            model_id="mimo-v2.5-pro",
+            base_url="https://token-plan-cn.xiaomimimo.com/v1",
+            api_key="tp-c6ja7uur7jmeau1hsbunnn3y1exktw5996kp5oeqfexhxh56",
+        )
+        db.add(m)
+        await db.commit()
+        logger.info("Added GPT5.5 model (mimo-v2.5-pro)")
+
+
+async def _ensure_codex_key():
+    from models import User, ApiKey
+    from services.key_service import generate_key
+    async with SessionLocal() as db:
+        from sqlalchemy import select
+        # Find admin user
+        result = await db.execute(select(User).where(User.is_admin == True))
+        admin = result.scalar_one_or_none()
+        if not admin:
+            return
+        # Check if codex key already exists
+        result = await db.execute(select(ApiKey).where(ApiKey.user_id == admin.id, ApiKey.name == "codex"))
+        if result.scalar_one_or_none():
+            return
+        key_str = generate_key()
+        key = ApiKey(user_id=admin.id, key=key_str, name="codex")
+        db.add(key)
+        await db.commit()
+        logger.info(f"Created codex API key: {key_str}")
 
 
 # Register routers
