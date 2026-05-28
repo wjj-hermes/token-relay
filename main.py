@@ -310,22 +310,14 @@ async def responses_api(request: Request):
                 raw_key = key_match.group(1)
         except:
             pass
-    # Temporarily allow no auth for debugging
-    if not raw_key:
-        raw_key = "sk-tr-47264d73544aafc6fbbf0e6bb8863c4ebad3999cc091aa27"
-        logger.warning("No API key provided, using default key for debugging")
-
-    async with SessionLocal() as db:
-        result = await validate_api_key(db, raw_key)
-        if not result:
-            raise HTTPException(status_code=401, detail="无效的 API Key")
-        user, api_key = result
-        from sqlalchemy import select
-        from models import Subscription
-        subs_result = await db.execute(select(Subscription).where(Subscription.user_id == user.id))
-        subs = subs_result.scalars().all()
-        if not await check_balance(user, subs):
-            raise HTTPException(status_code=402, detail="余额不足，请充值")
+    # Temporarily skip auth for debugging
+    user = None
+    api_key = None
+    if raw_key:
+        async with SessionLocal() as db:
+            result = await validate_api_key(db, raw_key)
+            if result:
+                user, api_key = result
 
     body = await request.json()
     model = body.get("model", "")
@@ -380,7 +372,7 @@ async def responses_api(request: Request):
             except Exception as e:
                 yield f"data: {json.dumps({'error': {'message': str(e)}})}\n\n"
             finally:
-                if usage_data:
+                if usage_data and user and api_key:
                     async with SessionLocal() as db:
                         u = await db.get(type(user), user.id)
                         ak = await db.get(type(api_key), api_key.id)
@@ -393,13 +385,14 @@ async def responses_api(request: Request):
     try:
         result = await relay.chat(model, messages, **kwargs)
         usage = result.get("usage", {})
-        async with SessionLocal() as db:
-            u = await db.get(type(user), user.id)
-            ak = await db.get(type(api_key), api_key.id)
-            if u and ak:
-                await deduct_usage(db, u, ak, model,
-                                   usage.get("prompt_tokens", 0),
-                                   usage.get("completion_tokens", 0))
+        if user and api_key:
+            async with SessionLocal() as db:
+                u = await db.get(type(user), user.id)
+                ak = await db.get(type(api_key), api_key.id)
+                if u and ak:
+                    await deduct_usage(db, u, ak, model,
+                                       usage.get("prompt_tokens", 0),
+                                       usage.get("completion_tokens", 0))
 
         # Convert to Responses API format
         choice = result.get("choices", [{}])[0]
