@@ -41,7 +41,7 @@
         {% if keys %}
         <div class="table-responsive">
             <table class="table table-sm mb-0">
-                <thead><tr><th>{{ t("name") }}</th><th>{{ t("key") }}</th><th>{{ t("created") }}</th><th>{{ t("action") }}</th></tr></thead>
+                <thead><tr><th>{{ t("name") }}</th><th>{{ t("key") }}</th><th>{{ t("created") }}</th><th>{{ t("expires") }}</th><th>{{ t("action") }}</th></tr></thead>
                 <tbody>
                 {% for k in keys %}
                 <tr>
@@ -50,6 +50,7 @@
                         <button class="btn btn-sm btn-outline-secondary ms-1 copy-btn" onclick="copyKey(this)">{{ t("copy") }}</button>
                     </td>
                     <td>{{ k.created_at.strftime('%Y-%m-%d') }}</td>
+                    <td>{% if k.expire_at %}{{ k.expire_at.strftime('%Y-%m-%d') }}{% else %}{{ t("no_limit") }}{% endif %}</td>
                     <td>
                         <form method="post" action="/user/keys/{{ k.id }}/delete" class="d-inline"
                               onsubmit="return confirm('{{ t("confirm_delete") }}')">

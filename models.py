@@ -29,6 +29,7 @@ class ApiKey(Base):
     key = Column(String(64), unique=True, nullable=False, index=True)
     name = Column(String(50), default="default")
     is_active = Column(Boolean, default=True, nullable=False)
+    expire_at = Column(DateTime, nullable=True)  # None = 永不过期
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     user = relationship("User", back_populates="api_keys")

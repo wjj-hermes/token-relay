@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from models import Order, Product, User, Subscription
+from services.key_service import create_api_key
 
 
 def generate_order_no() -> str:
@@ -41,8 +42,11 @@ async def complete_order(db: AsyncSession, order_no: str, alipay_trade_no: str) 
     product = await db.get(Product, order.product_id)
     user = await db.get(User, order.user_id)
 
+    expire_at = None
     if product.type == "quota":
         user.balance += product.token_amount
+        if product.duration_days > 0:
+            expire_at = datetime.utcnow() + timedelta(days=product.duration_days)
     elif product.type == "subscription":
         now = datetime.utcnow()
         # Check if user has existing active sub for this product
@@ -56,6 +60,7 @@ async def complete_order(db: AsyncSession, order_no: str, alipay_trade_no: str) 
         sub = existing.scalar_one_or_none()
         if sub:
             sub.expire_at += timedelta(days=product.duration_days)
+            expire_at = sub.expire_at
         else:
             sub = Subscription(
                 user_id=user.id,
@@ -65,6 +70,11 @@ async def complete_order(db: AsyncSession, order_no: str, alipay_trade_no: str) 
                 daily_limit=product.daily_limit,
             )
             db.add(sub)
+            expire_at = sub.expire_at
 
     await db.commit()
+
+    # Auto-generate API key after payment
+    await create_api_key(db, user.id, name=product.name, expire_at=expire_at)
+
     return True
