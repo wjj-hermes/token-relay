@@ -385,7 +385,9 @@ async def responses_api(request: Request):
                     yield f"data: {json.dumps({'type': 'response.output_text.done', 'item_id': msg_id, 'output_index': 0, 'content_index': 0, 'text': full_text})}\n\n"
                     yield f"data: {json.dumps({'type': 'response.content_part.done', 'item_id': msg_id, 'output_index': 0, 'content_index': 0, 'part': {'type': 'output_text', 'text': full_text}})}\n\n"
                     yield f"data: {json.dumps({'type': 'response.output_item.done', 'output_index': 0, 'item': {'type': 'message', 'id': msg_id, 'role': 'assistant', 'content': [{'type': 'output_text', 'text': full_text}]}})}\n\n"
-                    yield f"data: {json.dumps({'type': 'response.completed', 'response': {'id': resp_id, 'object': 'response', 'model': model, 'output': [{'type': 'message', 'id': msg_id, 'role': 'assistant', 'content': [{'type': 'output_text', 'text': full_text}]}], 'usage': {'input_tokens': usage_data.get('prompt_tokens', 0), 'output_tokens': usage_data.get('completion_tokens', 0)}}})}\n\n"
+                    inp = usage_data.get('prompt_tokens', 0)
+                    out = usage_data.get('completion_tokens', 0)
+                    yield f"data: {json.dumps({'type': 'response.completed', 'response': {'id': resp_id, 'object': 'response', 'model': model, 'output': [{'type': 'message', 'id': msg_id, 'role': 'assistant', 'content': [{'type': 'output_text', 'text': full_text}]}], 'usage': {'input_tokens': inp, 'output_tokens': out, 'total_tokens': inp + out}}})}\n\n"
                     yield "data: [DONE]\n\n"
                 except Exception:
                     pass
