@@ -284,6 +284,8 @@ async def chat_completions(request: Request):
 @app.post("/v1/responses")
 async def responses_api(request: Request):
     """OpenAI Responses API compatible endpoint, converts to Chat Completions internally."""
+    # Log all incoming headers for debugging
+    logger.info(f"Responses API request headers: {dict(request.headers)}")
     # Try multiple auth sources
     auth = request.headers.get("Authorization", "")
     raw_key = auth[7:] if auth.startswith("Bearer ") else auth
