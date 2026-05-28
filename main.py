@@ -333,8 +333,9 @@ async def responses_api(request: Request):
     instructions = body.get("instructions", "")
     raw_input = body.get("input", "")
     messages = []
+    system_parts = []
     if instructions:
-        messages.append({"role": "system", "content": instructions})
+        system_parts.append(instructions)
     if isinstance(raw_input, str):
         messages.append({"role": "user", "content": raw_input})
     elif isinstance(raw_input, list):
@@ -343,16 +344,20 @@ async def responses_api(request: Request):
                 messages.append({"role": "user", "content": item})
             elif isinstance(item, dict):
                 role = item.get("role", "user")
-                # developer -> system for upstream compatibility
-                if role == "developer":
-                    role = "system"
                 content = item.get("content", "")
                 if isinstance(content, list):
                     text_parts = [c.get("text", "") for c in content if isinstance(c, dict) and c.get("type") == "text"]
                     content = "\n".join(text_parts)
-                messages.append({"role": role, "content": content})
+                # Merge developer/system into a single system message
+                if role in ("developer", "system"):
+                    system_parts.append(content)
+                else:
+                    messages.append({"role": role, "content": content})
     else:
         messages.append({"role": "user", "content": str(raw_input)})
+    # Prepend merged system message
+    if system_parts:
+        messages.insert(0, {"role": "system", "content": "\n\n".join(system_parts)})
 
     kwargs = {}
     if "max_output_tokens" in body:
