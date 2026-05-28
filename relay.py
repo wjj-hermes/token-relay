@@ -41,6 +41,11 @@ class Relay:
         if model in self.model_map:
             name = self.model_map[model]
             return self.providers[name], name
+        # Case-insensitive fallback
+        lower = model.lower()
+        for display_name, provider_name in self.model_map.items():
+            if display_name.lower() == lower:
+                return self.providers[provider_name], provider_name
         if self.providers:
             name = next(iter(self.providers))
             return self.providers[name], name

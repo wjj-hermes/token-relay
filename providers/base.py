@@ -20,7 +20,14 @@ class BaseProvider(ABC):
         ...
 
     def resolve_model(self, model: str) -> str:
-        return self.models.get(model, model)
+        if model in self.models:
+            return self.models[model]
+        # Case-insensitive fallback
+        lower = model.lower()
+        for k, v in self.models.items():
+            if k.lower() == lower:
+                return v
+        return model
 
     def make_chunk(self, delta: dict, model: str, finish_reason: Optional[str] = None) -> dict:
         return {
