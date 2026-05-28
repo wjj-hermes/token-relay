@@ -210,7 +210,9 @@ app.include_router(payment_router)
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "models": relay.list_models()}
+    from database import DB_URL
+    db_type = "postgresql" if "postgresql" in DB_URL or "postgres" in DB_URL else "sqlite"
+    return {"status": "ok", "db": db_type, "models": relay.list_models()}
 
 
 @app.get("/debug/get_key")
