@@ -368,10 +368,12 @@ async def responses_api(request: Request):
                 async for chunk in relay.chat_stream(model, messages, **kwargs):
                     if "usage" in chunk:
                         usage_data = chunk["usage"]
-                    delta = chunk.get("choices", [{}])[0].get("delta", {})
-                    if delta.get("content"):
-                        full_text += delta["content"]
-                        yield f"data: {json.dumps({'type': 'response.output_text.delta', 'item_id': msg_id, 'output_index': 0, 'content_index': 0, 'delta': delta['content']})}\n\n"
+                    choices = chunk.get("choices", [])
+                    if choices:
+                        delta = choices[0].get("delta", {})
+                        if delta.get("content"):
+                            full_text += delta["content"]
+                            yield f"data: {json.dumps({'type': 'response.output_text.delta', 'item_id': msg_id, 'output_index': 0, 'content_index': 0, 'delta': delta['content']})}\n\n"
 
                 # Send completion events
                 yield f"data: {json.dumps({'type': 'response.output_text.done', 'item_id': msg_id, 'output_index': 0, 'content_index': 0, 'text': full_text})}\n\n"
