@@ -188,15 +188,21 @@ async def health():
     return {"status": "ok", "models": relay.list_models()}
 
 
-@app.post("/debug/headers")
-async def debug_headers(request: Request):
-    """Debug endpoint to see what headers Codex sends."""
-    return {
-        "headers": dict(request.headers),
-        "query_params": dict(request.query_params),
-        "method": request.method,
-        "url": str(request.url),
-    }
+@app.get("/debug/get_key")
+async def debug_get_key():
+    """Temporary: get current admin API key."""
+    from sqlalchemy import select
+    from models import ApiKey, User
+    async with SessionLocal() as db:
+        result = await db.execute(select(User).where(User.is_admin == True))
+        admin = result.scalar_one_or_none()
+        if not admin:
+            return {"error": "No admin user"}
+        result = await db.execute(select(ApiKey).where(ApiKey.user_id == admin.id))
+        keys = result.scalars().all()
+        if not keys:
+            return {"error": "No API keys found"}
+        return {"key": keys[0].key}
 
 
 
