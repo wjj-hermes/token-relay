@@ -326,6 +326,7 @@ async def responses_api(request: Request):
         raise HTTPException(status_code=400, detail="缺少 model 参数")
 
     # Convert Responses API input to messages
+    logger.info(f"Responses API body keys: {list(body.keys())}, instructions={repr(body.get('instructions', ''))[:200]}")
     instructions = body.get("instructions", "")
     raw_input = body.get("input", "")
     messages = []
