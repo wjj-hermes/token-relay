@@ -102,8 +102,10 @@ async def admin_products(request: Request):
     db = request.state.db
     result = await db.execute(select(Product).order_by(Product.id))
     products = result.scalars().all()
+    models_result = await db.execute(select(LLMModel).where(LLMModel.is_active == True))
+    models = models_result.scalars().all()
     return templates.TemplateResponse(request, "admin/products.html", _ctx(
-        request, user=request.state.user, products=products,
+        request, user=request.state.user, products=products, models=models,
     ))
 
 
