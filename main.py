@@ -21,6 +21,7 @@ async def lifespan(app: FastAPI):
     await init_db()
     # Auto-create admin user if not exists
     await _ensure_admin()
+    await _restore_users()
     await _seed_products()
     await _fix_products()
     await _seed_models()
@@ -64,6 +65,30 @@ async def _ensure_admin():
                 existing.balance = 10000000
             await db.commit()
             logger.info(f"Updated admin password")
+
+
+async def _restore_users():
+    """Restore backed-up users that may be lost on Railway redeploy."""
+    from models import User
+    from auth import hash_password
+    backed_up_users = [
+        {"username": "Canoe", "email": "2155988624@qq.com", "balance": 10000000},
+    ]
+    async with SessionLocal() as db:
+        from sqlalchemy import select
+        for u in backed_up_users:
+            result = await db.execute(select(User).where(User.username == u["username"]))
+            if not result.scalar_one_or_none():
+                user = User(
+                    username=u["username"],
+                    email=u["email"],
+                    password_hash=hash_password("123456"),
+                    is_admin=False,
+                    balance=u["balance"],
+                )
+                db.add(user)
+                logger.info(f"Restored user: {u['username']}")
+        await db.commit()
 
 
 async def _seed_products():
