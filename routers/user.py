@@ -192,7 +192,25 @@ async def guide(request: Request):
 async def create_key(request: Request, name: str = Form("default")):
     user = request.state.user
     db = request.state.db
-    await create_api_key(db, user.id, name)
+    lang = get_lang(request)
+
+    # Check if user has active subscription
+    now = datetime.utcnow()
+    sub_result = await db.execute(
+        select(Subscription).where(
+            Subscription.user_id == user.id,
+            Subscription.expire_at > now,
+        ).order_by(Subscription.expire_at.desc())
+    )
+    active_sub = sub_result.scalars().first()
+
+    # If no active subscription and no balance, reject
+    if not active_sub and user.balance <= 0:
+        return RedirectResponse("/user/dashboard?error=no_plan", status_code=302)
+
+    # Key expires with the subscription, or no expiration for quota-only users
+    expire_at = active_sub.expire_at if active_sub else None
+    await create_api_key(db, user.id, name, expire_at=expire_at)
     return RedirectResponse("/user/dashboard", status_code=302)
 
 
