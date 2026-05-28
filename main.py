@@ -208,6 +208,20 @@ async def debug_key(key: str):
             "user_balance": user.balance if user else None,
         }
 
+
+@app.get("/debug/admin_keys")
+async def debug_admin_keys():
+    from sqlalchemy import select
+    from models import ApiKey, User
+    async with SessionLocal() as db:
+        result = await db.execute(select(User).where(User.is_admin == True))
+        admin = result.scalar_one_or_none()
+        if not admin:
+            return {"error": "No admin user"}
+        result = await db.execute(select(ApiKey).where(ApiKey.user_id == admin.id))
+        keys = result.scalars().all()
+        return {"admin_id": admin.id, "balance": admin.balance, "keys": [{"id": k.id, "name": k.name, "key": k.key, "active": k.is_active} for k in keys]}
+
 @app.get("/debug/alipay")
 async def debug_alipay():
     import os
