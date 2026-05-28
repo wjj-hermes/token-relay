@@ -355,19 +355,29 @@ async def responses_api(request: Request):
         async def event_stream():
             usage_data = {}
             resp_id = f"resp_{int(time.time())}"
+            msg_id = f"msg_{resp_id}"
+            full_text = ""
             try:
+                # Send response.created
+                yield f"data: {json.dumps({'type': 'response.created', 'response': {'id': resp_id, 'object': 'response', 'model': model, 'output': []}})}\n\n"
+                # Send response.output_item.added
+                yield f"data: {json.dumps({'type': 'response.output_item.added', 'output_index': 0, 'item': {'type': 'message', 'id': msg_id, 'role': 'assistant', 'content': []}})}\n\n"
+                # Send response.content_part.added
+                yield f"data: {json.dumps({'type': 'response.content_part.added', 'item_id': msg_id, 'output_index': 0, 'content_index': 0, 'part': {'type': 'output_text', 'text': ''}})}\n\n"
+
                 async for chunk in relay.chat_stream(model, messages, **kwargs):
                     if "usage" in chunk:
                         usage_data = chunk["usage"]
-                    # Convert chunk to Responses API format
                     delta = chunk.get("choices", [{}])[0].get("delta", {})
                     if delta.get("content"):
-                        event = {
-                            "type": "response.output_text.delta",
-                            "item_id": f"msg_{resp_id}",
-                            "delta": delta["content"]
-                        }
-                        yield f"data: {json.dumps(event)}\n\n"
+                        full_text += delta["content"]
+                        yield f"data: {json.dumps({'type': 'response.output_text.delta', 'item_id': msg_id, 'output_index': 0, 'content_index': 0, 'delta': delta['content']})}\n\n"
+
+                # Send completion events
+                yield f"data: {json.dumps({'type': 'response.output_text.done', 'item_id': msg_id, 'output_index': 0, 'content_index': 0, 'text': full_text})}\n\n"
+                yield f"data: {json.dumps({'type': 'response.content_part.done', 'item_id': msg_id, 'output_index': 0, 'content_index': 0, 'part': {'type': 'output_text', 'text': full_text}})}\n\n"
+                yield f"data: {json.dumps({'type': 'response.output_item.done', 'output_index': 0, 'item': {'type': 'message', 'id': msg_id, 'role': 'assistant', 'content': [{'type': 'output_text', 'text': full_text}]}})}\n\n"
+                yield f"data: {json.dumps({'type': 'response.completed', 'response': {'id': resp_id, 'object': 'response', 'model': model, 'output': [{'type': 'message', 'id': msg_id, 'role': 'assistant', 'content': [{'type': 'output_text', 'text': full_text}]}], 'usage': {'input_tokens': usage_data.get('prompt_tokens', 0), 'output_tokens': usage_data.get('completion_tokens', 0)}}})}\n\n"
                 yield "data: [DONE]\n\n"
             except Exception as e:
                 yield f"data: {json.dumps({'error': {'message': str(e)}})}\n\n"
