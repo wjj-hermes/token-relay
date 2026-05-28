@@ -188,6 +188,17 @@ async def health():
     return {"status": "ok", "models": relay.list_models()}
 
 
+@app.post("/debug/headers")
+async def debug_headers(request: Request):
+    """Debug endpoint to see what headers Codex sends."""
+    return {
+        "headers": dict(request.headers),
+        "query_params": dict(request.query_params),
+        "method": request.method,
+        "url": str(request.url),
+    }
+
+
 
 
 @app.get("/v1/models")
