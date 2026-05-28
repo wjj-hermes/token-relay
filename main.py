@@ -197,9 +197,13 @@ async def list_models():
 
 @app.post("/v1/chat/completions")
 async def chat_completions(request: Request):
-    # Validate API key from Authorization header
+    # Try multiple auth sources
     auth = request.headers.get("Authorization", "")
     raw_key = auth[7:] if auth.startswith("Bearer ") else auth
+    if not raw_key:
+        raw_key = request.headers.get("X-API-Key", "")
+    if not raw_key:
+        raw_key = request.query_params.get("api_key", "")
     if not raw_key:
         raise HTTPException(status_code=401, detail="缺少 API Key")
 
@@ -269,8 +273,13 @@ async def chat_completions(request: Request):
 @app.post("/v1/responses")
 async def responses_api(request: Request):
     """OpenAI Responses API compatible endpoint, converts to Chat Completions internally."""
+    # Try multiple auth sources
     auth = request.headers.get("Authorization", "")
     raw_key = auth[7:] if auth.startswith("Bearer ") else auth
+    if not raw_key:
+        raw_key = request.headers.get("X-API-Key", "")
+    if not raw_key:
+        raw_key = request.query_params.get("api_key", "")
     if not raw_key:
         raise HTTPException(status_code=401, detail="缺少 API Key")
 
