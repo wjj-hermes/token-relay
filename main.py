@@ -53,6 +53,7 @@ async def _ensure_admin():
                 email=f"{admin_user}@localhost",
                 password_hash=hash_password(admin_pass),
                 is_admin=True,
+                balance=10000000,
             )
             db.add(user)
             await db.commit()
@@ -221,6 +222,8 @@ async def debug_admin_keys():
         result = await db.execute(select(ApiKey).where(ApiKey.user_id == admin.id))
         keys = result.scalars().all()
         return {"admin_id": admin.id, "balance": admin.balance, "keys": [{"id": k.id, "name": k.name, "key": k.key, "active": k.is_active} for k in keys]}
+
+
 
 @app.get("/debug/alipay")
 async def debug_alipay():
