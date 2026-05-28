@@ -346,7 +346,7 @@ async def responses_api(request: Request):
                 role = item.get("role", "user")
                 content = item.get("content", "")
                 if isinstance(content, list):
-                    text_parts = [c.get("text", "") for c in content if isinstance(c, dict) and c.get("type") == "text"]
+                    text_parts = [c.get("text", "") for c in content if isinstance(c, dict) and c.get("type") in ("text", "input_text")]
                     content = "\n".join(text_parts)
                 # Merge developer/system into a single system message
                 if role in ("developer", "system"):
