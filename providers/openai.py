@@ -18,7 +18,8 @@ class OpenAIProvider(BaseProvider):
         if api_key:
             headers["Authorization"] = f"Bearer {api_key}"
 
-        async with httpx.AsyncClient(timeout=300) as client:
+        timeout = httpx.Timeout(connect=30, read=300, write=30, pool=30)
+        async with httpx.AsyncClient(timeout=timeout) as client:
             resp = await client.post(f"{self.base_url}/chat/completions", json=body, headers=headers)
             data = resp.json()
             if resp.status_code != 200:
@@ -36,7 +37,8 @@ class OpenAIProvider(BaseProvider):
         if api_key:
             headers["Authorization"] = f"Bearer {api_key}"
 
-        async with httpx.AsyncClient(timeout=300) as client:
+        timeout = httpx.Timeout(connect=30, read=300, write=30, pool=30)
+        async with httpx.AsyncClient(timeout=timeout) as client:
             async with client.stream("POST", f"{self.base_url}/chat/completions", json=body, headers=headers) as resp:
                 if resp.status_code != 200:
                     text = await resp.aread()

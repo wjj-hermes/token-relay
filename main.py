@@ -256,10 +256,11 @@ async def chat_completions(request: Request):
                     if "usage" in chunk:
                         usage_data = chunk["usage"]
                     yield f"data: {json.dumps(chunk)}\n\n"
-                yield "data: [DONE]\n\n"
             except Exception as e:
+                logger.error(f"Stream error for {model}: {e}")
                 yield f"data: {json.dumps({'error': {'message': str(e), 'type': 'server_error'}})}\n\n"
             finally:
+                yield "data: [DONE]\n\n"
                 # Deduct usage
                 if usage_data:
                     async with SessionLocal() as db:
@@ -375,15 +376,19 @@ async def responses_api(request: Request):
                             full_text += delta["content"]
                             yield f"data: {json.dumps({'type': 'response.output_text.delta', 'item_id': msg_id, 'output_index': 0, 'content_index': 0, 'delta': delta['content']})}\n\n"
 
-                # Send completion events
-                yield f"data: {json.dumps({'type': 'response.output_text.done', 'item_id': msg_id, 'output_index': 0, 'content_index': 0, 'text': full_text})}\n\n"
-                yield f"data: {json.dumps({'type': 'response.content_part.done', 'item_id': msg_id, 'output_index': 0, 'content_index': 0, 'part': {'type': 'output_text', 'text': full_text}})}\n\n"
-                yield f"data: {json.dumps({'type': 'response.output_item.done', 'output_index': 0, 'item': {'type': 'message', 'id': msg_id, 'role': 'assistant', 'content': [{'type': 'output_text', 'text': full_text}]}})}\n\n"
-                yield f"data: {json.dumps({'type': 'response.completed', 'response': {'id': resp_id, 'object': 'response', 'model': model, 'output': [{'type': 'message', 'id': msg_id, 'role': 'assistant', 'content': [{'type': 'output_text', 'text': full_text}]}], 'usage': {'input_tokens': usage_data.get('prompt_tokens', 0), 'output_tokens': usage_data.get('completion_tokens', 0)}}})}\n\n"
-                yield "data: [DONE]\n\n"
             except Exception as e:
-                yield f"data: {json.dumps({'error': {'message': str(e)}})}\n\n"
+                logger.error(f"Stream error for {model}: {e}")
+                yield f"data: {json.dumps({'type': 'response.output_text.delta', 'item_id': msg_id, 'output_index': 0, 'content_index': 0, 'delta': f'\\n\\n[Stream error: {str(e)[:200]}]'})}\n\n"
             finally:
+                # Always send completion events so the client sees response.completed
+                try:
+                    yield f"data: {json.dumps({'type': 'response.output_text.done', 'item_id': msg_id, 'output_index': 0, 'content_index': 0, 'text': full_text})}\n\n"
+                    yield f"data: {json.dumps({'type': 'response.content_part.done', 'item_id': msg_id, 'output_index': 0, 'content_index': 0, 'part': {'type': 'output_text', 'text': full_text}})}\n\n"
+                    yield f"data: {json.dumps({'type': 'response.output_item.done', 'output_index': 0, 'item': {'type': 'message', 'id': msg_id, 'role': 'assistant', 'content': [{'type': 'output_text', 'text': full_text}]}})}\n\n"
+                    yield f"data: {json.dumps({'type': 'response.completed', 'response': {'id': resp_id, 'object': 'response', 'model': model, 'output': [{'type': 'message', 'id': msg_id, 'role': 'assistant', 'content': [{'type': 'output_text', 'text': full_text}]}], 'usage': {'input_tokens': usage_data.get('prompt_tokens', 0), 'output_tokens': usage_data.get('completion_tokens', 0)}}})}\n\n"
+                    yield "data: [DONE]\n\n"
+                except Exception:
+                    pass
                 if usage_data and user and api_key:
                     async with SessionLocal() as db:
                         u = await db.get(type(user), user.id)

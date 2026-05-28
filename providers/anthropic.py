@@ -62,7 +62,8 @@ class AnthropicProvider(BaseProvider):
     async def chat(self, model: str, messages: list, **kwargs) -> dict:
         body, headers = self._to_anthropic(model, messages, **kwargs)
         body["stream"] = False
-        async with httpx.AsyncClient(timeout=300) as client:
+        timeout = httpx.Timeout(connect=30, read=300, write=30, pool=30)
+        async with httpx.AsyncClient(timeout=timeout) as client:
             resp = await client.post(f"{self.base_url}/v1/messages", json=body, headers=headers)
             data = resp.json()
             if resp.status_code != 200:
@@ -72,7 +73,8 @@ class AnthropicProvider(BaseProvider):
     async def chat_stream(self, model: str, messages: list, **kwargs) -> AsyncIterator[dict]:
         body, headers = self._to_anthropic(model, messages, **kwargs)
         body["stream"] = True
-        async with httpx.AsyncClient(timeout=300) as client:
+        timeout = httpx.Timeout(connect=30, read=300, write=30, pool=30)
+        async with httpx.AsyncClient(timeout=timeout) as client:
             async with client.stream("POST", f"{self.base_url}/v1/messages", json=body, headers=headers) as resp:
                 if resp.status_code != 200:
                     text = await resp.aread()
