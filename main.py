@@ -326,9 +326,13 @@ async def responses_api(request: Request):
         raise HTTPException(status_code=400, detail="缺少 model 参数")
 
     # Convert Responses API input to messages
+    instructions = body.get("instructions", "")
     raw_input = body.get("input", "")
+    messages = []
+    if instructions:
+        messages.append({"role": "system", "content": instructions})
     if isinstance(raw_input, str):
-        messages = [{"role": "user", "content": raw_input}]
+        messages.append({"role": "user", "content": raw_input})
     elif isinstance(raw_input, list):
         messages = []
         for item in raw_input:
@@ -342,7 +346,7 @@ async def responses_api(request: Request):
                     content = "\n".join(text_parts)
                 messages.append({"role": role, "content": content})
     else:
-        messages = [{"role": "user", "content": str(raw_input)}]
+        messages.append({"role": "user", "content": str(raw_input)})
 
     kwargs = {}
     if "max_output_tokens" in body:
