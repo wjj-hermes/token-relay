@@ -30,6 +30,7 @@ class ApiKey(Base):
     name = Column(String(50), default="default")
     is_active = Column(Boolean, default=True, nullable=False)
     expire_at = Column(DateTime, nullable=True)  # None = 永不过期
+    allowed_model = Column(String(100), default="")  # 空=不限模型
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     user = relationship("User", back_populates="api_keys")
@@ -46,6 +47,7 @@ class Product(Base):
     token_amount = Column(Integer, default=0)  # 额度包 token 数
     duration_days = Column(Integer, default=0)  # 订阅天数
     daily_limit = Column(Integer, default=0)  # 订阅每日上限，0=不限
+    model_name = Column(String(100), default="")  # 绑定的模型，空=通用
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 

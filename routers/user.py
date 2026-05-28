@@ -189,10 +189,9 @@ async def guide(request: Request):
 
 @router.post("/keys/create")
 @require_login
-async def create_key(request: Request, name: str = Form("default")):
+async def create_key(request: Request, name: str = Form("default"), model: str = Form("")):
     user = request.state.user
     db = request.state.db
-    lang = get_lang(request)
 
     # Check if user has active subscription
     now = datetime.utcnow()
@@ -210,7 +209,7 @@ async def create_key(request: Request, name: str = Form("default")):
 
     # Key expires with the subscription, or no expiration for quota-only users
     expire_at = active_sub.expire_at if active_sub else None
-    await create_api_key(db, user.id, name, expire_at=expire_at)
+    await create_api_key(db, user.id, name, expire_at=expire_at, allowed_model=model)
     return RedirectResponse("/user/dashboard", status_code=302)
 
 

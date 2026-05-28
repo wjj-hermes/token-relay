@@ -251,11 +251,21 @@ async def chat_completions(request: Request):
     if not raw_key:
         raise HTTPException(status_code=401, detail="缺少 API Key")
 
+    body = await request.json()
+    model = body.get("model", "")
+    if not model:
+        raise HTTPException(status_code=400, detail="缺少 model 参数")
+
     async with SessionLocal() as db:
         result = await validate_api_key(db, raw_key)
         if not result:
             raise HTTPException(status_code=401, detail="无效的 API Key")
         user, api_key = result
+
+        # Check model access
+        from services.key_service import check_model_access
+        if not check_model_access(api_key, model):
+            raise HTTPException(status_code=403, detail=f"此 Key 无权访问模型 {model}")
 
         # Check balance
         from sqlalchemy import select
@@ -267,10 +277,6 @@ async def chat_completions(request: Request):
         if not await check_balance(user, subs):
             raise HTTPException(status_code=402, detail="余额不足，请充值")
 
-    body = await request.json()
-    model = body.get("model", "")
-    if not model:
-        raise HTTPException(status_code=400, detail="缺少 model 参数")
     messages = body.get("messages", [])
     kwargs = {k: body[k] for k in ("temperature", "max_tokens", "top_p", "tools", "tool_choice", "stop") if k in body}
 

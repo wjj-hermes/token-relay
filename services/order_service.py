@@ -75,6 +75,6 @@ async def complete_order(db: AsyncSession, order_no: str, alipay_trade_no: str) 
     await db.commit()
 
     # Auto-generate API key after payment
-    await create_api_key(db, user.id, name=product.name, expire_at=expire_at)
+    await create_api_key(db, user.id, name=product.name, expire_at=expire_at, allowed_model=product.model_name)
 
     return True

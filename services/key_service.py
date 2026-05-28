@@ -12,8 +12,8 @@ def generate_key() -> str:
     return KEY_PREFIX + secrets.token_hex(24)
 
 
-async def create_api_key(db: AsyncSession, user_id: int, name: str = "default", expire_at=None) -> ApiKey:
-    key = ApiKey(user_id=user_id, key=generate_key(), name=name, expire_at=expire_at)
+async def create_api_key(db: AsyncSession, user_id: int, name: str = "default", expire_at=None, allowed_model: str = "") -> ApiKey:
+    key = ApiKey(user_id=user_id, key=generate_key(), name=name, expire_at=expire_at, allowed_model=allowed_model)
     db.add(key)
     await db.commit()
     await db.refresh(key)
@@ -32,6 +32,13 @@ async def validate_api_key(db: AsyncSession, raw_key: str) -> Optional[Tuple[Use
     if not user or not user.is_active:
         return None
     return user, api_key
+
+
+def check_model_access(api_key: ApiKey, model: str) -> bool:
+    """Return True if the key is allowed to use the given model."""
+    if not api_key.allowed_model:
+        return True  # Empty = no restriction
+    return api_key.allowed_model == model
 
 
 async def check_balance(user: User, subs: list[Subscription]) -> bool:

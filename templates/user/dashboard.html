@@ -36,12 +36,18 @@
         <h5 class="card-title mb-3">{{ t("key_mgmt") }}</h5>
         <form method="post" action="/user/keys/create" class="mb-3 d-flex gap-2">
             <input type="text" name="name" class="form-control form-control-sm" placeholder="{{ t('key_name_placeholder') }}" style="max-width:200px">
+            <select name="model" class="form-select form-select-sm" style="max-width:200px">
+                <option value="">{{ t("all_models") }}</option>
+                {% for m in models %}
+                <option value="{{ m.name }}">{{ m.name }}</option>
+                {% endfor %}
+            </select>
             <button class="btn btn-sm btn-primary">{{ t("create_key") }}</button>
         </form>
         {% if keys %}
         <div class="table-responsive">
             <table class="table table-sm mb-0">
-                <thead><tr><th>{{ t("name") }}</th><th>{{ t("key") }}</th><th>{{ t("created") }}</th><th>{{ t("expires") }}</th><th>{{ t("action") }}</th></tr></thead>
+                <thead><tr><th>{{ t("name") }}</th><th>{{ t("key") }}</th><th>{{ t("model") }}</th><th>{{ t("created") }}</th><th>{{ t("expires") }}</th><th>{{ t("action") }}</th></tr></thead>
                 <tbody>
                 {% for k in keys %}
                 <tr>
@@ -49,6 +55,7 @@
                     <td><code class="api-key-display" data-key="{{ k.key }}">{{ k.key[:12] }}...{{ k.key[-4:] }}</code>
                         <button class="btn btn-sm btn-outline-secondary ms-1 copy-btn" onclick="copyKey(this)">{{ t("copy") }}</button>
                     </td>
+                    <td>{% if k.allowed_model %}<code>{{ k.allowed_model }}</code>{% else %}{{ t("all_models") }}{% endif %}</td>
                     <td>{{ k.created_at.strftime('%Y-%m-%d') }}</td>
                     <td>{% if k.expire_at %}{{ k.expire_at.strftime('%Y-%m-%d') }}{% else %}{{ t("no_limit") }}{% endif %}</td>
                     <td>
