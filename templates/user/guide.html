@@ -42,6 +42,24 @@
   api_key: YOUR_API_KEY
   provider: custom</code></pre>
         <p class="text-muted mt-2"><strong>{{ t("hermes_provider_note") }}</strong></p>
+
+        <h5 class="mt-4">6. {{ t("codex_config") }}</h5>
+        <p>{{ t("codex_config_hint") }}</p>
+        <pre class="bg-dark text-light p-3 rounded"><code># ~/.codex/config.toml
+model = "{{ models[0].name if models else 'model-name' }}"
+model_provider = "myrelay"
+model_reasoning_effort = "low"
+
+[model_providers.myrelay]
+name = "Token Relay"
+base_url = "{{ api_base_url }}"
+wire_api = "responses"
+supports_websockets = false
+api_key = "YOUR_API_KEY"</code></pre>
+        <p class="text-muted mt-2">{{ t("codex_config_note") }}</p>
+        <p>{{ t("codex_chinese_hint") }}</p>
+        <pre class="bg-dark text-light p-3 rounded"><code># ~/.codex/AGENTS.md
+Always respond in Chinese. 用中文回复所有问题。</code></pre>
     </div>
 </div>
 {% endblock %}
