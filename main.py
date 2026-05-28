@@ -358,6 +358,7 @@ async def responses_api(request: Request):
     # Prepend merged system message
     if system_parts:
         messages.insert(0, {"role": "system", "content": "\n\n".join(system_parts)})
+    _last_request_body["_messages_sent"] = [{"role": m["role"], "content": m["content"][:300]} for m in messages]
 
     kwargs = {}
     if "max_output_tokens" in body:
