@@ -27,7 +27,7 @@ class OpenAIProvider(BaseProvider):
             return data
 
     async def chat_stream(self, model: str, messages: list, **kwargs) -> AsyncIterator[dict]:
-        body = {"model": self.resolve_model(model), "messages": messages, "stream": True}
+        body = {"model": self.resolve_model(model), "messages": messages, "stream": True, "stream_options": {"include_usage": True}}
         for k in ("temperature", "max_tokens", "top_p", "tools", "tool_choice", "stop"):
             if k in kwargs and kwargs[k] is not None:
                 body[k] = kwargs[k]
