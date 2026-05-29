@@ -50,6 +50,66 @@
   "products": [
     {
       "id": 1,
+      "name": "入门套餐",
+      "description": "适合轻度使用和个人学习，约可进行 2000 次对话",
+      "type": "额度包",
+      "price": 9.90,
+      "balance": 100000,
+      "duration_days": 365,
+      "daily_limit": 0,
+      "model": "",
+      "status": "上架"
+    },
+    {
+      "id": 2,
+      "name": "专业套餐",
+      "description": "适合日常开发和小型团队，约可进行 10000 次对话",
+      "type": "额度包",
+      "price": 49.90,
+      "balance": 500000,
+      "duration_days": 365,
+      "daily_limit": 0,
+      "model": "",
+      "status": "上架"
+    },
+    {
+      "id": 3,
+      "name": "企业套餐",
+      "description": "适合高频调用和企业级应用，约可进行 40000 次对话",
+      "type": "额度包",
+      "price": 199.00,
+      "balance": 2000000,
+      "duration_days": 365,
+      "daily_limit": 0,
+      "model": "",
+      "status": "上架"
+    },
+    {
+      "id": 4,
+      "name": "月度基础版",
+      "description": "按月订阅，每日 5 万 token 额度，适合稳定用量",
+      "type": "订阅制",
+      "price": 29.90,
+      "balance": 0,
+      "duration_days": 30,
+      "daily_limit": 50000,
+      "model": "",
+      "status": "上架"
+    },
+    {
+      "id": 5,
+      "name": "月度专业版",
+      "description": "按月订阅，每日 20 万 token 额度，适合高频调用",
+      "type": "订阅制",
+      "price": 99.90,
+      "balance": 0,
+      "duration_days": 30,
+      "daily_limit": 200000,
+      "model": "",
+      "status": "上架"
+    },
+    {
+      "id": 6,
       "name": "GPT-5.5",
       "description": "适合轻度使用和个人学习codex",
       "type": "订阅制",
@@ -61,7 +121,7 @@
       "status": "上架"
     },
     {
-      "id": 2,
+      "id": 7,
       "name": "deepseek-v4-flash",
       "description": "适合日常开发和小型团队，约可进行 10000 次对话",
       "type": "订阅制",
@@ -90,12 +150,12 @@
   "api_keys": [
     {
       "user": "Canoe",
-      "key_prefix": "sk-tr-11dd1b09...",
+      "key": "sk-tr-11dd1b0960f41f3b83e49f07cbdfe6fb323fc9af48a10396",
       "note": "当前使用中的 key"
     },
     {
       "user": "admin",
-      "key_prefix": "sk-tr-af1571ca...",
+      "key": "sk-tr-0562df02758307fb1b4fb0beff27125f397f9dd5a47545a8",
       "note": "admin 默认 key"
     }
   ],
