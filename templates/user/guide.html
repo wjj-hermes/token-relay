@@ -60,6 +60,40 @@ api_key = "YOUR_API_KEY"</code></pre>
         <p>{{ t("codex_chinese_hint") }}</p>
         <pre class="bg-dark text-light p-3 rounded"><code># ~/.codex/AGENTS.md
 Always respond in Chinese. 用中文回复所有问题。</code></pre>
+
+        <h5 class="mt-4">7. OpenClaw 配置</h5>
+        <p>在 OpenClaw 配置文件 <code>~/.openclaw/openclaw.json</code> 中添加以下内容：</p>
+        <pre class="bg-dark text-light p-3 rounded"><code>{
+  "models": {
+    "providers": {
+      "token-relay": {
+        "baseUrl": "{{ api_base_url }}",
+        "api": "openai-completions",
+        "apiKey": "YOUR_API_KEY",
+        "models": [
+          {% for m in models %}{
+            "id": "{{ m.name }}",
+            "name": "{{ m.name }}",
+            "api": "openai-completions"
+          }{% if not loop.last %},{% endif %}
+          {% endfor %}
+        ]
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "models": {
+        {% for m in models %}"token-relay/{{ m.name }}": {}{% if not loop.last %},
+        {% endif %}{% endfor %}
+      },
+      "model": {
+        "primary": "token-relay/{{ models[0].name if models else 'model-name' }}"
+      }
+    }
+  }
+}</code></pre>
+        <p class="text-muted mt-2">注意：在 <code>agents.defaults.models</code> 中使用 <code>token-relay/模型名</code> 格式，在 <code>agents.defaults.model.primary</code> 中设置默认使用的模型。</p>
     </div>
 </div>
 {% endblock %}
