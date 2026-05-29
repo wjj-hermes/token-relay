@@ -367,6 +367,40 @@ _last_request_body = {}
 async def debug_last_request():
     return _last_request_body
 
+def _convert_responses_tools_to_chat(tools: list) -> list:
+    """Convert Responses API flat tool format to Chat Completions nested format."""
+    result = []
+    for tool in tools:
+        if tool.get("type") == "function" and "name" in tool:
+            result.append({
+                "type": "function",
+                "function": {
+                    "name": tool["name"],
+                    "description": tool.get("description", ""),
+                    "parameters": tool.get("parameters", {}),
+                }
+            })
+        else:
+            result.append(tool)
+    return result
+
+
+def _convert_chat_tool_calls_to_responses(tool_calls: list) -> list:
+    """Convert Chat Completions tool_calls to Responses API function_call items."""
+    result = []
+    for tc in tool_calls:
+        func = tc.get("function", {})
+        tc_id = tc.get("id", f"call_{int(time.time())}")
+        result.append({
+            "type": "function_call",
+            "id": tc_id,
+            "name": func.get("name", ""),
+            "arguments": func.get("arguments", ""),
+            "call_id": tc_id,
+        })
+    return result
+
+
 @app.post("/v1/responses")
 async def responses_api(request: Request):
     """OpenAI Responses API compatible endpoint, converts to Chat Completions internally."""
@@ -416,16 +450,36 @@ async def responses_api(request: Request):
             if isinstance(item, str):
                 messages.append({"role": "user", "content": item})
             elif isinstance(item, dict):
-                role = item.get("role", "user")
-                content = item.get("content", "")
-                if isinstance(content, list):
-                    text_parts = [c.get("text", "") for c in content if isinstance(c, dict) and c.get("type") in ("text", "input_text")]
-                    content = "\n".join(text_parts)
-                # Merge developer/system into a single system message
-                if role in ("developer", "system"):
-                    system_parts.append(content)
+                item_type = item.get("type", "")
+                if item_type == "function_call":
+                    tc = {
+                        "id": item.get("id", item.get("call_id", "")),
+                        "type": "function",
+                        "function": {
+                            "name": item.get("name", ""),
+                            "arguments": item.get("arguments", ""),
+                        }
+                    }
+                    if messages and messages[-1]["role"] == "assistant" and "tool_calls" in messages[-1]:
+                        messages[-1]["tool_calls"].append(tc)
+                    else:
+                        messages.append({"role": "assistant", "content": "", "tool_calls": [tc]})
+                elif item_type == "function_call_output":
+                    messages.append({
+                        "role": "tool",
+                        "tool_call_id": item.get("call_id", ""),
+                        "content": item.get("output", ""),
+                    })
                 else:
-                    messages.append({"role": role, "content": content})
+                    role = item.get("role", "user")
+                    content = item.get("content", "")
+                    if isinstance(content, list):
+                        text_parts = [c.get("text", "") for c in content if isinstance(c, dict) and c.get("type") in ("text", "input_text")]
+                        content = "\n".join(text_parts)
+                    if role in ("developer", "system"):
+                        system_parts.append(content)
+                    else:
+                        messages.append({"role": role, "content": content})
     else:
         messages.append({"role": "user", "content": str(raw_input)})
     # Prepend merged system message
@@ -438,6 +492,12 @@ async def responses_api(request: Request):
         kwargs["max_tokens"] = body["max_output_tokens"]
     if "temperature" in body:
         kwargs["temperature"] = body["temperature"]
+    if "tools" in body:
+        kwargs["tools"] = _convert_responses_tools_to_chat(body["tools"])
+    if "tool_choice" in body and body["tool_choice"] not in ("auto", "none"):
+        kwargs["tool_choice"] = body["tool_choice"]
+    if "stop" in body:
+        kwargs["stop"] = body["stop"]
 
     is_stream = body.get("stream", False)
 
@@ -447,12 +507,10 @@ async def responses_api(request: Request):
             resp_id = f"resp_{int(time.time())}"
             msg_id = f"msg_{resp_id}"
             full_text = ""
+            tool_calls_acc = {}
             try:
-                # Send response.created
                 yield f"data: {json.dumps({'type': 'response.created', 'response': {'id': resp_id, 'object': 'response', 'model': model, 'output': []}})}\n\n"
-                # Send response.output_item.added
                 yield f"data: {json.dumps({'type': 'response.output_item.added', 'output_index': 0, 'item': {'type': 'message', 'id': msg_id, 'role': 'assistant', 'content': []}})}\n\n"
-                # Send response.content_part.added
                 yield f"data: {json.dumps({'type': 'response.content_part.added', 'item_id': msg_id, 'output_index': 0, 'content_index': 0, 'part': {'type': 'output_text', 'text': ''}})}\n\n"
 
                 async for chunk in relay.chat_stream(model, messages, **kwargs):
@@ -464,19 +522,48 @@ async def responses_api(request: Request):
                         if delta.get("content"):
                             full_text += delta["content"]
                             yield f"data: {json.dumps({'type': 'response.output_text.delta', 'item_id': msg_id, 'output_index': 0, 'content_index': 0, 'delta': delta['content']})}\n\n"
+                        for tc_delta in (delta.get("tool_calls") or []):
+                            idx = tc_delta.get("index", 0)
+                            if idx not in tool_calls_acc:
+                                tool_calls_acc[idx] = {"id": tc_delta.get("id", ""), "name": "", "arguments": ""}
+                            if tc_delta.get("id"):
+                                tool_calls_acc[idx]["id"] = tc_delta["id"]
+                            func = tc_delta.get("function") or {}
+                            if func.get("name"):
+                                tool_calls_acc[idx]["name"] = func["name"]
+                            if func.get("arguments"):
+                                tool_calls_acc[idx]["arguments"] += func["arguments"]
 
             except Exception as e:
                 logger.error(f"Stream error for {model}: {e}")
                 yield f"data: {json.dumps({'type': 'response.output_text.delta', 'item_id': msg_id, 'output_index': 0, 'content_index': 0, 'delta': f'\\n\\n[Stream error: {str(e)[:200]}]'})}\n\n"
             finally:
-                # Always send completion events so the client sees response.completed
                 try:
-                    yield f"data: {json.dumps({'type': 'response.output_text.done', 'item_id': msg_id, 'output_index': 0, 'content_index': 0, 'text': full_text})}\n\n"
-                    yield f"data: {json.dumps({'type': 'response.content_part.done', 'item_id': msg_id, 'output_index': 0, 'content_index': 0, 'part': {'type': 'output_text', 'text': full_text}})}\n\n"
-                    yield f"data: {json.dumps({'type': 'response.output_item.done', 'output_index': 0, 'item': {'type': 'message', 'id': msg_id, 'role': 'assistant', 'content': [{'type': 'output_text', 'text': full_text}]}})}\n\n"
+                    output_items = []
+                    for idx in sorted(tool_calls_acc.keys()):
+                        tc = tool_calls_acc[idx]
+                        call_id = tc["id"] or f"call_{idx}"
+                        fc_item = {"type": "function_call", "id": call_id, "name": tc["name"], "arguments": tc["arguments"], "call_id": call_id}
+                        output_items.append(fc_item)
+                        yield f"data: {json.dumps({'type': 'response.output_item.added', 'output_index': len(output_items) - 1, 'item': fc_item})}\n\n"
+                        yield f"data: {json.dumps({'type': 'response.output_item.done', 'output_index': len(output_items) - 1, 'item': fc_item})}\n\n"
+
+                    if full_text:
+                        text_item = {"type": "message", "id": msg_id, "role": "assistant", "content": [{"type": "output_text", "text": full_text}]}
+                        output_items.append(text_item)
+                        yield f"data: {json.dumps({'type': 'response.output_text.done', 'item_id': msg_id, 'output_index': len(output_items) - 1, 'content_index': 0, 'text': full_text})}\n\n"
+                        yield f"data: {json.dumps({'type': 'response.content_part.done', 'item_id': msg_id, 'output_index': len(output_items) - 1, 'content_index': 0, 'part': {'type': 'output_text', 'text': full_text}})}\n\n"
+                        yield f"data: {json.dumps({'type': 'response.output_item.done', 'output_index': len(output_items) - 1, 'item': text_item})}\n\n"
+                    elif not tool_calls_acc:
+                        text_item = {"type": "message", "id": msg_id, "role": "assistant", "content": [{"type": "output_text", "text": ""}]}
+                        output_items.append(text_item)
+                        yield f"data: {json.dumps({'type': 'response.output_text.done', 'item_id': msg_id, 'output_index': 0, 'content_index': 0, 'text': ''})}\n\n"
+                        yield f"data: {json.dumps({'type': 'response.content_part.done', 'item_id': msg_id, 'output_index': 0, 'content_index': 0, 'part': {'type': 'output_text', 'text': ''}})}\n\n"
+                        yield f"data: {json.dumps({'type': 'response.output_item.done', 'output_index': 0, 'item': text_item})}\n\n"
+
                     inp = usage_data.get('prompt_tokens', 0)
                     out = usage_data.get('completion_tokens', 0)
-                    yield f"data: {json.dumps({'type': 'response.completed', 'response': {'id': resp_id, 'object': 'response', 'model': model, 'output': [{'type': 'message', 'id': msg_id, 'role': 'assistant', 'content': [{'type': 'output_text', 'text': full_text}]}], 'usage': {'input_tokens': inp, 'output_tokens': out, 'total_tokens': inp + out}}})}\n\n"
+                    yield f"data: {json.dumps({'type': 'response.completed', 'response': {'id': resp_id, 'object': 'response', 'model': model, 'output': output_items, 'usage': {'input_tokens': inp, 'output_tokens': out, 'total_tokens': inp + out}}})}\n\n"
                     yield "data: [DONE]\n\n"
                 except Exception:
                     pass
@@ -515,24 +602,33 @@ async def responses_api(request: Request):
         message = choice.get("message", {})
         content_text = message.get("content", "") or ""
         resp_id = f"resp_{int(time.time())}"
+
+        output_items = []
+        tool_calls = message.get("tool_calls")
+        if tool_calls:
+            for fc in _convert_chat_tool_calls_to_responses(tool_calls):
+                output_items.append(fc)
+        if content_text:
+            output_items.append({
+                "type": "message",
+                "id": f"msg_{resp_id}",
+                "role": "assistant",
+                "content": [{"type": "output_text", "text": content_text}]
+            })
+        if not output_items:
+            output_items.append({
+                "type": "message",
+                "id": f"msg_{resp_id}",
+                "role": "assistant",
+                "content": [{"type": "output_text", "text": content_text or ""}]
+            })
+
         response = {
             "id": resp_id,
             "object": "response",
             "created": result.get("created", int(time.time())),
             "model": model,
-            "output": [
-                {
-                    "type": "message",
-                    "id": f"msg_{resp_id}",
-                    "role": "assistant",
-                    "content": [
-                        {
-                            "type": "output_text",
-                            "text": content_text
-                        }
-                    ]
-                }
-            ],
+            "output": output_items,
             "usage": {
                 "input_tokens": usage.get("prompt_tokens", 0),
                 "output_tokens": usage.get("completion_tokens", 0),
