@@ -24,8 +24,10 @@ async def lifespan(app: FastAPI):
     await _restore_users()
     await _seed_products()
     await _fix_products()
+    await _ensure_old_products()
     await _seed_models()
     await _ensure_gpt55()
+    await _ensure_qwen35()
     await _ensure_codex_key()
     # Load models from database
     await relay.reload_from_db()
@@ -137,6 +139,26 @@ async def _fix_products():
         await db.commit()
 
 
+async def _ensure_old_products():
+    """Ensure old subscription products exist."""
+    from models import Product
+    async with SessionLocal() as db:
+        from sqlalchemy import select
+        # Check GPT-5.5 product
+        result = await db.execute(select(Product).where(Product.name == "GPT-5.5"))
+        if not result.scalar_one_or_none():
+            p = Product(name="GPT-5.5", description="适合轻度使用和个人学习codex", type="subscription", price=200, token_amount=10000000, duration_days=5, daily_limit=0, model_name="GPT5.5")
+            db.add(p)
+            logger.info("Added GPT-5.5 product")
+        # Check deepseek-v4-flash product
+        result = await db.execute(select(Product).where(Product.name == "deepseek-v4-flash"))
+        if not result.scalar_one_or_none():
+            p = Product(name="deepseek-v4-flash", description="适合日常开发和小型团队，约可进行 10000 次对话", type="subscription", price=100, token_amount=5000000, duration_days=5, daily_limit=0, model_name="deepseek-ai/deepseek-v4-flash")
+            db.add(p)
+            logger.info("Added deepseek-v4-flash product")
+        await db.commit()
+
+
 async def _seed_models():
     from models import LLMModel
     async with SessionLocal() as db:
@@ -171,6 +193,24 @@ async def _ensure_gpt55():
         db.add(m)
         await db.commit()
         logger.info("Added GPT5.5 model (mimo-v2.5-pro)")
+
+
+async def _ensure_qwen35():
+    from models import LLMModel
+    async with SessionLocal() as db:
+        from sqlalchemy import select
+        result = await db.execute(select(LLMModel).where(LLMModel.name == "qwen3.5"))
+        if result.scalar_one_or_none():
+            return
+        m = LLMModel(
+            name="qwen3.5",
+            model_id="qwen/qwen3-coder-480b-a35b-instruct",
+            base_url="https://integrate.api.nvidia.com/v1",
+            api_key="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",
+        )
+        db.add(m)
+        await db.commit()
+        logger.info("Added qwen3.5 model (qwen/qwen3-coder-480b-a35b-instruct)")
 
 
 async def _ensure_codex_key():
