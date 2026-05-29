@@ -1,0 +1,115 @@
+{
+  "backup_date": "2026-05-29",
+  "source": "https://token-relay-v2-production.up.railway.app",
+  "users": [
+    {
+      "id": 1,
+      "username": "admin",
+      "email": "admin@localhost",
+      "balance": 7991689,
+      "is_admin": true,
+      "status": "正常",
+      "created_at": "2026-05-28"
+    },
+    {
+      "id": 2,
+      "username": "Canoe",
+      "email": "2155988624@qq.com",
+      "balance": 10000000,
+      "is_admin": false,
+      "status": "正常",
+      "created_at": "2026-05-28"
+    }
+  ],
+  "models": [
+    {
+      "id": 1,
+      "name": "deepseek-ai/deepseek-v4-flash",
+      "upstream_model": "deepseek-ai/deepseek-v4-flash",
+      "upstream_url": "https://integrate.api.nvidia.com/v1",
+      "upstream_key_masked": "nvapi-IVBk2J...",
+      "status": "上架"
+    },
+    {
+      "id": 2,
+      "name": "GPT-5.5",
+      "upstream_model": "mimo-v2.5-pro",
+      "upstream_url": "https://token-plan-cn.xiaomimimo.com/v1",
+      "upstream_key_masked": "tp-c6ja7uur7...",
+      "status": "上架"
+    },
+    {
+      "id": 3,
+      "name": "qwen3.5",
+      "upstream_model": "qwen/qwen3-coder-480b-a35b-instruct",
+      "upstream_url": "https://integrate.api.nvidia.com/v1",
+      "upstream_key_masked": "nvapi-IVBk2J...",
+      "status": "上架"
+    }
+  ],
+  "products": [
+    {
+      "id": 1,
+      "name": "GPT-5.5",
+      "description": "适合轻度使用和个人学习codex",
+      "type": "订阅制",
+      "price": 2.00,
+      "balance": 10000000,
+      "duration_days": 5,
+      "daily_limit": 0,
+      "model": "GPT5.5",
+      "status": "上架"
+    },
+    {
+      "id": 2,
+      "name": "deepseek-v4-flash",
+      "description": "适合日常开发和小型团队，约可进行 10000 次对话",
+      "type": "订阅制",
+      "price": 1.00,
+      "balance": 5000000,
+      "duration_days": 5,
+      "daily_limit": 0,
+      "model": "deepseek-ai/deepseek-v4-flash",
+      "status": "上架"
+    }
+  ],
+  "providers": [
+    {
+      "name": "db_6625",
+      "base_url": "https://integrate.api.nvidia.com/v1",
+      "models": ["deepseek-ai/deepseek-v4-flash", "qwen3.5"],
+      "keys": [{"key_masked": "nvapi-IV...1iIx", "fail_count": 0, "disabled": false}]
+    },
+    {
+      "name": "db_1779",
+      "base_url": "https://token-plan-cn.xiaomimimo.com/v1",
+      "models": ["GPT-5.5"],
+      "keys": [{"key_masked": "tp-c6ja7...xh56", "fail_count": 0, "disabled": false}]
+    }
+  ],
+  "api_keys": [
+    {
+      "user": "Canoe",
+      "key_prefix": "sk-tr-11dd1b09...",
+      "note": "当前使用中的 key"
+    },
+    {
+      "user": "admin",
+      "key_prefix": "sk-tr-af1571ca...",
+      "note": "admin 默认 key"
+    }
+  ],
+  "stats": {
+    "total_requests": 93,
+    "success": 93,
+    "failed": 0,
+    "total_prompt_tokens": 23054,
+    "total_completion_tokens": 2444
+  },
+  "config": {
+    "admin_username": "admin",
+    "admin_password": "Wj123321@",
+    "database": "SQLite (Railway, 每次部署重置)",
+    "github_repo": "wjj-hermes/token-relay"
+  }
+}
