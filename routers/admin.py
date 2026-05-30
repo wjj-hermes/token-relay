@@ -188,9 +188,10 @@ async def admin_models(request: Request):
 @require_admin
 async def create_model(request: Request, name: str = Form(...),
                        model_id: str = Form(...), base_url: str = Form(...),
-                       api_key: str = Form(...)):
+                       api_key: str = Form(...), provider_type: str = Form("openai")):
     db = request.state.db
-    m = LLMModel(name=name, model_id=model_id, base_url=base_url, api_key=api_key)
+    m = LLMModel(name=name, model_id=model_id, base_url=base_url, api_key=api_key,
+                 provider_type=provider_type)
     db.add(m)
     await db.commit()
     # Reload relay models
@@ -216,7 +217,8 @@ async def toggle_model(request: Request, model_id: int):
 @require_admin
 async def update_model(request: Request, model_id: int,
                        name: str = Form(...), model_id_val: str = Form(...),
-                       base_url: str = Form(...), api_key: str = Form(...)):
+                       base_url: str = Form(...), api_key: str = Form(...),
+                       provider_type: str = Form("openai")):
     db = request.state.db
     m = await db.get(LLMModel, model_id)
     if m:
@@ -224,6 +226,7 @@ async def update_model(request: Request, model_id: int,
         m.model_id = model_id_val
         m.base_url = base_url
         m.api_key = api_key
+        m.provider_type = provider_type
         await db.commit()
         from relay import relay
         await relay.reload_from_db()

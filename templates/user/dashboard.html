@@ -16,6 +16,13 @@
             <strong>{{ t("api_base_url") }}：</strong>
             <code id="api-url">{{ api_base_url }}</code>
             <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyText('api-url')">{{ t("copy") }}</button>
+            <small class="text-muted ms-2">（OpenAI 兼容格式）</small>
+        </div>
+        <div class="mb-2">
+            <strong>{{ t("anthropic_api_base_url") }}：</strong>
+            <code id="anthropic-url">{{ api_base_url | replace("/v1", "") }}</code>
+            <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyText('anthropic-url')">{{ t("copy") }}</button>
+            <small class="text-muted ms-2">（{{ t("anthropic_api_hint") }}）</small>
         </div>
         <div class="mb-2">
             <strong>{{ t("available_models") }}：</strong>

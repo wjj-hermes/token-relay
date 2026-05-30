@@ -11,22 +11,26 @@
         <h5>{{ t("add_model") }}</h5>
         <form method="post" action="/admin/models/create">
             <div class="row g-2 mb-2">
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <input type="text" name="name" class="form-control" placeholder="{{ t('model_display_name') }}" required>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <input type="text" name="model_id" class="form-control" placeholder="{{ t('model_upstream_id') }}" required>
                 </div>
                 <div class="col-md-3">
                     <input type="text" name="base_url" class="form-control" placeholder="{{ t('model_base_url') }}" required>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <input type="text" name="api_key" class="form-control" placeholder="{{ t('model_api_key') }}" required>
                 </div>
-            </div>
-            <div class="row g-2">
-                <div class="col-md-12">
-                    <button class="btn btn-primary">{{ t("add_btn") }}</button>
+                <div class="col-md-2">
+                    <select name="provider_type" class="form-select">
+                        <option value="openai">OpenAI</option>
+                        <option value="anthropic">Anthropic</option>
+                    </select>
+                </div>
+                <div class="col-md-1">
+                    <button class="btn btn-primary w-100">{{ t("add_btn") }}</button>
                 </div>
             </div>
         </form>
@@ -42,6 +46,7 @@
                 <th>{{ t("model_upstream_id") }}</th>
                 <th>{{ t("model_base_url") }}</th>
                 <th>{{ t("model_api_key") }}</th>
+                <th>{{ t("col_provider_type") }}</th>
                 <th>{{ t("col_status") }}</th>
                 <th>{{ t("action") }}</th>
             </tr>
@@ -54,6 +59,7 @@
             <td><code>{{ m.model_id }}</code></td>
             <td><small>{{ m.base_url }}</small></td>
             <td><code>{{ m.api_key[:12] }}...</code></td>
+            <td><span class="badge bg-{{ 'info' if m.provider_type == 'anthropic' else 'primary' }}">{{ m.provider_type|default('openai') }}</span></td>
             <td><span class="badge bg-{{ 'success' if m.is_active else 'secondary' }}">{{ t("listed") if m.is_active else t("unlisted") }}</span></td>
             <td>
                 <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ m.id }}">{{ t("edit") }}</button>
@@ -94,6 +100,13 @@
                             <div class="mb-3">
                                 <label class="form-label">{{ t("model_api_key") }}</label>
                                 <input type="text" name="api_key" class="form-control" value="{{ m.api_key }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">{{ t("col_provider_type") }}</label>
+                                <select name="provider_type" class="form-select">
+                                    <option value="openai" {{ 'selected' if m.provider_type|default('openai') == 'openai' else '' }}>OpenAI</option>
+                                    <option value="anthropic" {{ 'selected' if m.provider_type|default('openai') == 'anthropic' else '' }}>Anthropic</option>
+                                </select>
                             </div>
                         </div>
                         <div class="modal-footer">

@@ -60,7 +60,24 @@ api_key = "YOUR_API_KEY"</code></pre>
         <pre class="bg-dark text-light p-3 rounded"><code># ~/.codex/AGENTS.md
 Always respond in Chinese. 用中文回复所有问题。</code></pre>
 
-        <h5 class="mt-4">7. OpenClaw 配置</h5>
+        <h5 class="mt-4">7. {{ t("guide_claude_code") }}</h5>
+        <p>{{ t("guide_claude_code_hint") }}</p>
+        <pre class="bg-dark text-light p-3 rounded"><code>{{ t("guide_claude_code_env") }}:
+
+# Windows PowerShell
+$env:ANTHROPIC_BASE_URL = "{{ api_base_url | replace('/v1', '') }}"
+$env:ANTHROPIC_API_KEY = "YOUR_API_KEY"
+
+# Linux / macOS
+export ANTHROPIC_BASE_URL="{{ api_base_url | replace('/v1', '') }}"
+export ANTHROPIC_API_KEY="YOUR_API_KEY"
+
+# 然后直接运行
+claude</code></pre>
+        <p class="text-muted mt-2">{{ t("guide_claude_code_note") }}</p>
+        <p class="text-muted">{{ t("guide_claude_code_model_hint") }}</p>
+
+        <h5 class="mt-4">8. OpenClaw 配置</h5>
         <p>在 OpenClaw 配置文件 <code>~/.openclaw/openclaw.json</code> 中添加以下内容：</p>
         <pre class="bg-dark text-light p-3 rounded"><code>{
   "models": {

@@ -125,12 +125,15 @@ class Relay:
             url_groups.setdefault(m.base_url, []).append(m)
 
         for base_url, models in url_groups.items():
+            # Determine provider type from the first model in the group
+            ptype = getattr(models[0], "provider_type", "openai") or "openai"
             provider_name = f"db_{hash(base_url) % 10000}"
             keys = list({m.api_key for m in models})
             model_dict = {m.name: m.model_id for m in models}
 
             if provider_name not in self.providers:
-                self.providers[provider_name] = OpenAIProvider(
+                cls = PROVIDER_CLASSES.get(ptype, OpenAIProvider)
+                self.providers[provider_name] = cls(
                     base_url=base_url, api_keys=keys, models=model_dict
                 )
                 self.key_manager.load_keys(provider_name, keys)
@@ -143,7 +146,7 @@ class Relay:
 
             for m in models:
                 self.model_map[m.name] = provider_name
-                logger.info(f"DB model: {m.name} -> {provider_name} ({m.base_url})")
+                logger.info(f"DB model: {m.name} -> {provider_name} ({m.base_url}) [type={ptype}]")
 
     def get_all_model_names(self) -> list[str]:
         """Return all registered model display names."""

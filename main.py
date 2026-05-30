@@ -12,6 +12,7 @@ from config import config
 from relay import relay
 from database import init_db, SessionLocal
 from services.key_service import validate_api_key, check_balance, deduct_usage
+from providers.anthropic import AnthropicProvider
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
 logger = logging.getLogger("main")
@@ -20,6 +21,7 @@ logger = logging.getLogger("main")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
+    await _migrate_db()
     # Auto-create admin user if not exists
     await _ensure_admin()
     await _restore_users()
@@ -40,6 +42,30 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Token Relay Station", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+async def _migrate_db():
+    """Add missing columns for backward compatibility."""
+    from database import DB_URL
+    import sqlalchemy
+    # Build a sync URL for migration
+    sync_url = DB_URL
+    for prefix in ("+aiosqlite", "+asyncpg", "+asyncio"):
+        sync_url = sync_url.replace(prefix, "")
+    if sync_url.startswith("sqlite:///") and ":memory:" in sync_url:
+        return  # skip for in-memory DB
+    try:
+        engine = sqlalchemy.create_engine(sync_url)
+        with engine.connect() as conn:
+            try:
+                conn.execute(sqlalchemy.text("SELECT provider_type FROM llm_models LIMIT 1"))
+            except Exception:
+                conn.execute(sqlalchemy.text("ALTER TABLE llm_models ADD COLUMN provider_type VARCHAR(20) DEFAULT 'openai' NOT NULL"))
+                conn.commit()
+                logger.info("Migration: added provider_type column to llm_models")
+        engine.dispose()
+    except Exception as e:
+        logger.warning(f"Migration check skipped: {e}")
 
 
 async def _ensure_admin():
@@ -297,6 +323,191 @@ async def debug_get_key():
 @app.get("/v1/models")
 async def list_models():
     return {"object": "list", "data": [{"id": m["id"], "object": "model", "created": int(time.time()), "owned_by": m["owned_by"]} for m in relay.list_models()]}
+
+
+@app.post("/v1/messages")
+async def anthropic_messages(request: Request):
+    """Anthropic Messages API compatible endpoint — for Claude Code etc."""
+    # Auth: x-api-key header (Anthropic style) or Authorization: Bearer
+    raw_key = request.headers.get("x-api-key", "")
+    if not raw_key:
+        auth = request.headers.get("Authorization", "")
+        raw_key = auth[7:] if auth.startswith("Bearer ") else auth
+    if not raw_key:
+        raise HTTPException(status_code=401, detail="Missing API key")
+
+    body = await request.json()
+    model = body.get("model", "")
+    if not model:
+        raise HTTPException(status_code=400, detail="Missing model parameter")
+
+    # Validate user key
+    user = None
+    api_key = None
+    async with SessionLocal() as db:
+        result = await validate_api_key(db, raw_key)
+        if not result:
+            raise HTTPException(status_code=401, detail="Invalid API key")
+        user, api_key = result
+
+        # Check model access
+        from services.key_service import check_model_access
+        if not check_model_access(api_key, model):
+            raise HTTPException(status_code=403, detail=f"Key not authorized for model: {model}")
+
+        # Check balance
+        from sqlalchemy import select
+        from models import Subscription
+        subs_result = await db.execute(
+            select(Subscription).where(Subscription.user_id == user.id)
+        )
+        subs = subs_result.scalars().all()
+        if not await check_balance(user, subs):
+            raise HTTPException(status_code=402, detail="Insufficient balance")
+
+    # Find upstream Anthropic provider and resolve model
+    import httpx
+    upstream_url = None
+    upstream_key = None
+    upstream_model_id = model  # default: pass through as-is
+
+    # First try: find via relay's registered providers (Anthropic type)
+    try:
+        provider, _ = relay._find_provider(model)
+        if isinstance(provider, AnthropicProvider):
+            upstream_url = f"{provider.base_url}/v1/messages"
+            upstream_model_id = provider.resolve_model(model)
+            key = await relay.key_manager.get_key(relay.model_map.get(model, ""))
+            if key:
+                upstream_key = key
+                provider.api_keys = [key] + [k for k in provider.api_keys if k != key]
+            elif provider.api_keys:
+                upstream_key = provider.api_keys[0]
+    except (ValueError, Exception):
+        pass
+
+    # Second try: look up directly from DB (for Anthropic-type models)
+    if not upstream_url:
+        async with SessionLocal() as db:
+            from sqlalchemy import select
+            result = await db.execute(
+                select(LLMModel).where(LLMModel.name == model, LLMModel.is_active == True)
+            )
+            db_model = result.scalar_one_or_none()
+            if not db_model:
+                # Fuzzy match
+                result = await db.execute(
+                    select(LLMModel).where(LLMModel.is_active == True)
+                )
+                all_models = result.scalars().all()
+                norm = model.lower().replace("-", "").replace("_", "").replace(".", "")
+                for m in all_models:
+                    m_norm = m.name.lower().replace("-", "").replace("_", "").replace(".", "")
+                    if m_norm == norm:
+                        db_model = m
+                        break
+            if db_model:
+                upstream_url = f"{db_model.base_url.rstrip('/')}/v1/messages"
+                upstream_key = db_model.api_key
+                upstream_model_id = db_model.model_id
+
+    if not upstream_url:
+        raise HTTPException(status_code=404, detail=f"No Anthropic provider for model: {model}")
+
+    # Build upstream request body (pass through most fields)
+    upstream_body = dict(body)
+    upstream_body["model"] = upstream_model_id
+
+    headers = {
+        "Content-Type": "application/json",
+        "anthropic-version": "2023-06-01",
+        "x-api-key": upstream_key,
+    }
+
+    timeout = httpx.Timeout(connect=30, read=300, write=30, pool=30)
+    is_stream = body.get("stream", False)
+
+    if is_stream:
+        async def relay_stream():
+            usage_data = {}
+            try:
+                async with httpx.AsyncClient(timeout=timeout) as client:
+                    async with client.stream("POST", upstream_url, json=upstream_body, headers=headers) as resp:
+                        if resp.status_code != 200:
+                            text = await resp.aread()
+                            error_body = text.decode()[:500]
+                            yield f"data: {json.dumps({'type': 'error', 'error': {'type': 'api_error', 'message': f'Upstream error {resp.status_code}: {error_body}'}})}\n\n"
+                            return
+                        buf = ""
+                        async for chunk in resp.aiter_text():
+                            buf += chunk
+                            while "\n" in buf:
+                                line, buf = buf.split("\n", 1)
+                                line = line.strip()
+                                if not line:
+                                    continue
+                                # Capture usage from message_delta
+                                if line.startswith("data: "):
+                                    try:
+                                        event = json.loads(line[6:])
+                                        if event.get("type") == "message_start":
+                                            usage = event.get("message", {}).get("usage", {})
+                                            if usage:
+                                                usage_data.update(usage)
+                                        elif event.get("type") == "message_delta":
+                                            usage = event.get("usage", {})
+                                            if usage:
+                                                usage_data.update(usage)
+                                    except json.JSONDecodeError:
+                                        pass
+                                yield line + "\n"
+                        # Flush remaining buffer
+                        if buf.strip():
+                            yield buf
+            except Exception as e:
+                logger.error(f"Anthropic stream error for {model}: {e}")
+                yield f"data: {json.dumps({'type': 'error', 'error': {'type': 'server_error', 'message': str(e)[:200]}})}\n\n"
+            finally:
+                # Deduct usage
+                prompt_in = usage_data.get("input_tokens", 0)
+                comp_out = usage_data.get("output_tokens", 0)
+                if prompt_in or comp_out:
+                    async with SessionLocal() as db:
+                        u = await db.get(type(user), user.id)
+                        ak = await db.get(type(api_key), api_key.id)
+                        if u and ak:
+                            await deduct_usage(db, u, ak, model, prompt_in, comp_out)
+
+        return StreamingResponse(
+            relay_stream(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"},
+        )
+
+    # Non-streaming
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            resp = await client.post(upstream_url, json=upstream_body, headers=headers)
+            data = resp.json()
+            if resp.status_code != 200:
+                return JSONResponse(data, status_code=resp.status_code)
+            # Deduct usage
+            usage = data.get("usage", {})
+            prompt_in = usage.get("input_tokens", 0)
+            comp_out = usage.get("output_tokens", 0)
+            if prompt_in or comp_out:
+                async with SessionLocal() as db:
+                    u = await db.get(type(user), user.id)
+                    ak = await db.get(type(api_key), api_key.id)
+                    if u and ak:
+                        await deduct_usage(db, u, ak, model, prompt_in, comp_out)
+            return JSONResponse(data)
+    except Exception as e:
+        logger.error(f"Anthropic request error for {model}: {e}")
+        return JSONResponse(
+            {"type": "error", "error": {"type": "server_error", "message": str(e)}},
+            status_code=502,
+        )
 
 
 @app.post("/v1/chat/completions")
