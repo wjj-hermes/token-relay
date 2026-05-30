@@ -1,5 +1,6 @@
 import json
 import time
+import uuid
 import logging
 from datetime import datetime
 from contextlib import asynccontextmanager
@@ -325,9 +326,154 @@ async def list_models():
     return {"object": "list", "data": [{"id": m["id"], "object": "model", "created": int(time.time()), "owned_by": m["owned_by"]} for m in relay.list_models()]}
 
 
+def _anthropic_to_openai(body: dict) -> tuple[list, dict]:
+    """Convert Anthropic Messages API request to OpenAI Chat Completions format.
+    Returns (messages, kwargs)."""
+    messages = []
+    # System prompt
+    system = body.get("system", "")
+    if system:
+        messages.append({"role": "system", "content": system})
+
+    # Messages
+    for msg in body.get("messages", []):
+        role = msg.get("role", "user")
+        content = msg.get("content", "")
+
+        if isinstance(content, str):
+            messages.append({"role": role, "content": content})
+        elif isinstance(content, list):
+            # Anthropic content blocks
+            text_parts = []
+            tool_calls = []
+            tool_results = []
+            for block in content:
+                btype = block.get("type", "")
+                if btype == "text":
+                    text_parts.append(block.get("text", ""))
+                elif btype == "tool_use":
+                    tool_calls.append({
+                        "id": block.get("id", ""),
+                        "type": "function",
+                        "function": {
+                            "name": block.get("name", ""),
+                            "arguments": json.dumps(block.get("input", {}), ensure_ascii=False),
+                        }
+                    })
+                elif btype == "tool_result":
+                    tool_results.append({
+                        "role": "tool",
+                        "tool_call_id": block.get("tool_use_id", ""),
+                        "content": _extract_anthropic_content(block.get("content", "")),
+                    })
+
+            if role == "assistant":
+                msg_dict = {"role": "assistant", "content": "\n".join(text_parts) if text_parts else None}
+                if tool_calls:
+                    msg_dict["tool_calls"] = tool_calls
+                messages.append(msg_dict)
+            elif tool_results:
+                messages.extend(tool_results)
+                if text_parts:
+                    messages.append({"role": "user", "content": "\n".join(text_parts)})
+            else:
+                messages.append({"role": role, "content": "\n".join(text_parts)})
+        else:
+            messages.append({"role": role, "content": str(content)})
+
+    # Convert tools
+    kwargs = {}
+    anthropic_tools = body.get("tools", [])
+    if anthropic_tools:
+        openai_tools = []
+        for t in anthropic_tools:
+            openai_tools.append({
+                "type": "function",
+                "function": {
+                    "name": t.get("name", ""),
+                    "description": t.get("description", ""),
+                    "parameters": t.get("input_schema", {"type": "object", "properties": {}}),
+                }
+            })
+        kwargs["tools"] = openai_tools
+
+    if "max_tokens" in body:
+        kwargs["max_tokens"] = body["max_tokens"]
+    if "temperature" in body:
+        kwargs["temperature"] = body["temperature"]
+    if "top_p" in body:
+        kwargs["top_p"] = body["top_p"]
+
+    return messages, kwargs
+
+
+def _extract_anthropic_content(content) -> str:
+    """Extract text from Anthropic content field (string or list of blocks)."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for block in content:
+            if isinstance(block, dict) and block.get("type") == "text":
+                parts.append(block.get("text", ""))
+            elif isinstance(block, str):
+                parts.append(block)
+        return "\n".join(parts)
+    return str(content)
+
+
+def _openai_to_anthropic_response(openai_resp: dict, model: str) -> dict:
+    """Convert OpenAI Chat Completions response to Anthropic Messages API format."""
+    choice = openai_resp.get("choices", [{}])[0]
+    message = choice.get("message", {})
+    finish = choice.get("finish_reason", "stop")
+
+    # Build content blocks
+    content = []
+    if message.get("content"):
+        content.append({"type": "text", "text": message["content"]})
+    for tc in (message.get("tool_calls") or []):
+        func = tc.get("function", {})
+        try:
+            inp = json.loads(func.get("arguments", "{}"))
+        except json.JSONDecodeError:
+            inp = {}
+        content.append({
+            "type": "tool_use",
+            "id": tc.get("id", f"toolu_{uuid.uuid4().hex[:24]}"),
+            "name": func.get("name", ""),
+            "input": inp,
+        })
+
+    if not content:
+        content = [{"type": "text", "text": ""}]
+
+    # Map finish reason
+    stop_map = {"stop": "end_turn", "length": "max_tokens", "tool_calls": "tool_use", "content_filter": "end_turn"}
+    stop_reason = stop_map.get(finish, "end_turn")
+
+    usage = openai_resp.get("usage", {})
+    return {
+        "id": openai_resp.get("id", f"msg_{uuid.uuid4().hex[:24]}"),
+        "type": "message",
+        "role": "assistant",
+        "content": content,
+        "model": model,
+        "stop_reason": stop_reason,
+        "stop_sequence": None,
+        "usage": {
+            "input_tokens": usage.get("prompt_tokens", 0),
+            "output_tokens": usage.get("completion_tokens", 0),
+        },
+    }
+
+
 @app.post("/v1/messages")
 async def anthropic_messages(request: Request):
-    """Anthropic Messages API compatible endpoint — for Claude Code etc."""
+    """Anthropic Messages API compatible endpoint — for Claude Code etc.
+    Supports both Anthropic-native and OpenAI-compatible upstream providers."""
+    import httpx
+
     # Auth: x-api-key header (Anthropic style) or Authorization: Bearer
     raw_key = request.headers.get("x-api-key", "")
     if not raw_key:
@@ -365,28 +511,32 @@ async def anthropic_messages(request: Request):
         if not await check_balance(user, subs):
             raise HTTPException(status_code=402, detail="Insufficient balance")
 
-    # Find upstream Anthropic provider and resolve model
-    import httpx
+    # Find upstream provider
+    is_anthropic_upstream = False
     upstream_url = None
     upstream_key = None
-    upstream_model_id = model  # default: pass through as-is
+    upstream_model_id = model
 
-    # First try: find via relay's registered providers (Anthropic type)
+    # Try relay providers first
     try:
-        provider, _ = relay._find_provider(model)
+        provider, prov_name = relay._find_provider(model)
+        upstream_model_id = provider.resolve_model(model)
         if isinstance(provider, AnthropicProvider):
+            is_anthropic_upstream = True
             upstream_url = f"{provider.base_url}/v1/messages"
-            upstream_model_id = provider.resolve_model(model)
-            key = await relay.key_manager.get_key(relay.model_map.get(model, ""))
-            if key:
-                upstream_key = key
-                provider.api_keys = [key] + [k for k in provider.api_keys if k != key]
-            elif provider.api_keys:
-                upstream_key = provider.api_keys[0]
+        else:
+            is_anthropic_upstream = False
+            upstream_url = f"{provider.base_url}/v1/chat/completions"
+        key = await relay.key_manager.get_key(prov_name)
+        if key:
+            upstream_key = key
+            provider.api_keys = [key] + [k for k in provider.api_keys if k != key]
+        elif provider.api_keys:
+            upstream_key = provider.api_keys[0]
     except (ValueError, Exception):
         pass
 
-    # Second try: look up directly from DB (for Anthropic-type models)
+    # Fallback: look up from DB
     if not upstream_url:
         async with SessionLocal() as db:
             from sqlalchemy import select
@@ -395,10 +545,7 @@ async def anthropic_messages(request: Request):
             )
             db_model = result.scalar_one_or_none()
             if not db_model:
-                # Fuzzy match
-                result = await db.execute(
-                    select(LLMModel).where(LLMModel.is_active == True)
-                )
+                result = await db.execute(select(LLMModel).where(LLMModel.is_active == True))
                 all_models = result.scalars().all()
                 norm = model.lower().replace("-", "").replace("_", "").replace(".", "")
                 for m in all_models:
@@ -407,107 +554,226 @@ async def anthropic_messages(request: Request):
                         db_model = m
                         break
             if db_model:
-                upstream_url = f"{db_model.base_url.rstrip('/')}/v1/messages"
-                upstream_key = db_model.api_key
                 upstream_model_id = db_model.model_id
+                upstream_key = db_model.api_key
+                ptype = getattr(db_model, "provider_type", "openai") or "openai"
+                if ptype == "anthropic":
+                    is_anthropic_upstream = True
+                    upstream_url = f"{db_model.base_url.rstrip('/')}/v1/messages"
+                else:
+                    is_anthropic_upstream = False
+                    upstream_url = f"{db_model.base_url.rstrip('/')}/v1/chat/completions"
 
     if not upstream_url:
-        raise HTTPException(status_code=404, detail=f"No Anthropic provider for model: {model}")
-
-    # Build upstream request body (pass through most fields)
-    upstream_body = dict(body)
-    upstream_body["model"] = upstream_model_id
-
-    headers = {
-        "Content-Type": "application/json",
-        "anthropic-version": "2023-06-01",
-        "x-api-key": upstream_key,
-    }
+        raise HTTPException(status_code=404, detail=f"No provider for model: {model}")
 
     timeout = httpx.Timeout(connect=30, read=300, write=30, pool=30)
     is_stream = body.get("stream", False)
 
+    # --- Anthropic upstream: direct pass-through ---
+    if is_anthropic_upstream:
+        upstream_body = dict(body)
+        upstream_body["model"] = upstream_model_id
+        headers = {
+            "Content-Type": "application/json",
+            "anthropic-version": "2023-06-01",
+            "x-api-key": upstream_key,
+        }
+
+        if is_stream:
+            async def anthropic_passthrough():
+                usage_data = {}
+                try:
+                    async with httpx.AsyncClient(timeout=timeout) as client:
+                        async with client.stream("POST", upstream_url, json=upstream_body, headers=headers) as resp:
+                            if resp.status_code != 200:
+                                text = await resp.aread()
+                                yield f"data: {json.dumps({'type': 'error', 'error': {'type': 'api_error', 'message': f'Upstream {resp.status_code}: {text.decode()[:500]}'}})}\n\n"
+                                return
+                            buf = ""
+                            async for chunk in resp.aiter_text():
+                                buf += chunk
+                                while "\n" in buf:
+                                    line, buf = buf.split("\n", 1)
+                                    line = line.strip()
+                                    if not line:
+                                        continue
+                                    if line.startswith("data: "):
+                                        try:
+                                            event = json.loads(line[6:])
+                                            if event.get("type") == "message_start":
+                                                usage_data.update(event.get("message", {}).get("usage", {}))
+                                            elif event.get("type") == "message_delta":
+                                                usage_data.update(event.get("usage", {}))
+                                        except json.JSONDecodeError:
+                                            pass
+                                    yield line + "\n"
+                            if buf.strip():
+                                yield buf
+                except Exception as e:
+                    logger.error(f"Anthropic passthrough error: {e}")
+                    yield f"data: {json.dumps({'type': 'error', 'error': {'type': 'server_error', 'message': str(e)[:200]}})}\n\n"
+                finally:
+                    p, c = usage_data.get("input_tokens", 0), usage_data.get("output_tokens", 0)
+                    if p or c:
+                        async with SessionLocal() as db:
+                            u = await db.get(type(user), user.id)
+                            ak = await db.get(type(api_key), api_key.id)
+                            if u and ak:
+                                await deduct_usage(db, u, ak, model, p, c)
+
+            return StreamingResponse(anthropic_passthrough(), media_type="text/event-stream",
+                                     headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"})
+
+        # Non-streaming Anthropic passthrough
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                resp = await client.post(upstream_url, json=upstream_body, headers=headers)
+                data = resp.json()
+                if resp.status_code != 200:
+                    return JSONResponse(data, status_code=resp.status_code)
+                usage = data.get("usage", {})
+                p, c = usage.get("input_tokens", 0), usage.get("output_tokens", 0)
+                if p or c:
+                    async with SessionLocal() as db:
+                        u = await db.get(type(user), user.id)
+                        ak = await db.get(type(api_key), api_key.id)
+                        if u and ak:
+                            await deduct_usage(db, u, ak, model, p, c)
+                return JSONResponse(data)
+        except Exception as e:
+            return JSONResponse({"type": "error", "error": {"type": "server_error", "message": str(e)}}, status_code=502)
+
+    # --- OpenAI upstream: convert Anthropic <-> OpenAI format ---
+    openai_messages, openai_kwargs = _anthropic_to_openai(body)
+    openai_body = {"model": upstream_model_id, "messages": openai_messages, "stream": is_stream}
+    openai_body.update(openai_kwargs)
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {upstream_key}",
+    }
+
     if is_stream:
-        async def relay_stream():
+        async def openai_to_anthropic_stream():
             usage_data = {}
+            resp_id = f"msg_{uuid.uuid4().hex[:24]}"
+            content_idx = 0
+            tool_calls_acc = {}
             try:
+                # Send message_start
+                yield f"data: {json.dumps({'type': 'message_start', 'message': {'id': resp_id, 'type': 'message', 'role': 'assistant', 'content': [], 'model': model, 'stop_reason': None, 'stop_sequence': None, 'usage': {'input_tokens': 0, 'output_tokens': 0}}})}\n\n"
+
                 async with httpx.AsyncClient(timeout=timeout) as client:
-                    async with client.stream("POST", upstream_url, json=upstream_body, headers=headers) as resp:
+                    async with client.stream("POST", upstream_url, json=openai_body, headers=headers) as resp:
                         if resp.status_code != 200:
                             text = await resp.aread()
-                            error_body = text.decode()[:500]
-                            yield f"data: {json.dumps({'type': 'error', 'error': {'type': 'api_error', 'message': f'Upstream error {resp.status_code}: {error_body}'}})}\n\n"
+                            yield f"data: {json.dumps({'type': 'error', 'error': {'type': 'api_error', 'message': f'Upstream {resp.status_code}: {text.decode()[:500]}'}})}\n\n"
                             return
                         buf = ""
+                        text_block_started = False
                         async for chunk in resp.aiter_text():
                             buf += chunk
                             while "\n" in buf:
                                 line, buf = buf.split("\n", 1)
                                 line = line.strip()
-                                if not line:
+                                if not line.startswith("data: "):
                                     continue
-                                # Capture usage from message_delta
-                                if line.startswith("data: "):
-                                    try:
-                                        event = json.loads(line[6:])
-                                        if event.get("type") == "message_start":
-                                            usage = event.get("message", {}).get("usage", {})
-                                            if usage:
-                                                usage_data.update(usage)
-                                        elif event.get("type") == "message_delta":
-                                            usage = event.get("usage", {})
-                                            if usage:
-                                                usage_data.update(usage)
-                                    except json.JSONDecodeError:
-                                        pass
-                                yield line + "\n"
-                        # Flush remaining buffer
-                        if buf.strip():
-                            yield buf
+                                payload = line[6:]
+                                if payload == "[DONE]":
+                                    continue
+                                try:
+                                    event = json.loads(payload)
+                                except json.JSONDecodeError:
+                                    continue
+
+                                if "usage" in event:
+                                    usage_data.update(event["usage"])
+
+                                choices = event.get("choices", [])
+                                if not choices:
+                                    continue
+                                delta = choices[0].get("delta", {})
+                                finish = choices[0].get("finish_reason")
+
+                                # Text content
+                                if delta.get("content"):
+                                    if not text_block_started:
+                                        yield f"data: {json.dumps({'type': 'content_block_start', 'index': content_idx, 'content_block': {'type': 'text', 'text': ''}})}\n\n"
+                                        text_block_started = True
+                                    yield f"data: {json.dumps({'type': 'content_block_delta', 'index': content_idx, 'delta': {'type': 'text_delta', 'text': delta['content']}})}\n\n"
+
+                                # Tool calls
+                                for tc_delta in (delta.get("tool_calls") or []):
+                                    idx = tc_delta.get("index", 0)
+                                    if idx not in tool_calls_acc:
+                                        tool_calls_acc[idx] = {"id": "", "name": "", "arguments": ""}
+                                        # Start tool_use content block
+                                        yield f"data: {json.dumps({'type': 'content_block_start', 'index': content_idx + 1 + idx, 'content_block': {'type': 'tool_use', 'id': '', 'name': '', 'input': {}}})}\n\n"
+                                    if tc_delta.get("id"):
+                                        tool_calls_acc[idx]["id"] = tc_delta["id"]
+                                    func = tc_delta.get("function") or {}
+                                    if func.get("name"):
+                                        tool_calls_acc[idx]["name"] = func["name"]
+                                        # Send name via content_block_start update (Anthropic sends name at start)
+                                        yield f"data: {json.dumps({'type': 'content_block_delta', 'index': content_idx + 1 + idx, 'delta': {'type': 'input_json_delta', 'partial_json': ''}})}\n\n"
+                                    if func.get("arguments"):
+                                        tool_calls_acc[idx]["arguments"] += func["arguments"]
+                                        yield f"data: {json.dumps({'type': 'content_block_delta', 'index': content_idx + 1 + idx, 'delta': {'type': 'input_json_delta', 'partial_json': func['arguments']}})}\n\n"
+
+                                # Finish
+                                if finish:
+                                    # Close text block if open
+                                    if text_block_started:
+                                        yield f"data: {json.dumps({'type': 'content_block_stop', 'index': content_idx})}\n\n"
+                                    # Close tool blocks
+                                    for idx in sorted(tool_calls_acc.keys()):
+                                        yield f"data: {json.dumps({'type': 'content_block_stop', 'index': content_idx + 1 + idx})}\n\n"
+                                    stop_map = {"stop": "end_turn", "length": "max_tokens", "tool_calls": "tool_use"}
+                                    yield f"data: {json.dumps({'type': 'message_delta', 'delta': {'stop_reason': stop_map.get(finish, 'end_turn'), 'stop_sequence': None}, 'usage': {'output_tokens': usage_data.get('completion_tokens', 0)}})}\n\n"
+                                    yield f"data: {json.dumps({'type': 'message_stop'})}\n\n"
+
             except Exception as e:
-                logger.error(f"Anthropic stream error for {model}: {e}")
+                logger.error(f"OpenAI->Anthropic stream error: {e}")
                 yield f"data: {json.dumps({'type': 'error', 'error': {'type': 'server_error', 'message': str(e)[:200]}})}\n\n"
             finally:
-                # Deduct usage
-                prompt_in = usage_data.get("input_tokens", 0)
-                comp_out = usage_data.get("output_tokens", 0)
-                if prompt_in or comp_out:
+                p = usage_data.get("prompt_tokens", 0)
+                c = usage_data.get("completion_tokens", 0)
+                if p or c:
                     async with SessionLocal() as db:
                         u = await db.get(type(user), user.id)
                         ak = await db.get(type(api_key), api_key.id)
                         if u and ak:
-                            await deduct_usage(db, u, ak, model, prompt_in, comp_out)
+                            await deduct_usage(db, u, ak, model, p, c)
 
-        return StreamingResponse(
-            relay_stream(),
-            media_type="text/event-stream",
-            headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"},
-        )
+        return StreamingResponse(openai_to_anthropic_stream(), media_type="text/event-stream",
+                                 headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"})
 
-    # Non-streaming
+    # Non-streaming OpenAI -> Anthropic
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
-            resp = await client.post(upstream_url, json=upstream_body, headers=headers)
-            data = resp.json()
+            resp = await client.post(upstream_url, json=openai_body, headers=headers)
+            openai_data = resp.json()
             if resp.status_code != 200:
-                return JSONResponse(data, status_code=resp.status_code)
+                return JSONResponse(
+                    {"type": "error", "error": {"type": "api_error", "message": json.dumps(openai_data, ensure_ascii=False)[:500]}},
+                    status_code=resp.status_code,
+                )
+            # Convert to Anthropic format
+            anthropic_resp = _openai_to_anthropic_response(openai_data, model)
             # Deduct usage
-            usage = data.get("usage", {})
-            prompt_in = usage.get("input_tokens", 0)
-            comp_out = usage.get("output_tokens", 0)
-            if prompt_in or comp_out:
+            usage = openai_data.get("usage", {})
+            p, c = usage.get("prompt_tokens", 0), usage.get("completion_tokens", 0)
+            if p or c:
                 async with SessionLocal() as db:
                     u = await db.get(type(user), user.id)
                     ak = await db.get(type(api_key), api_key.id)
                     if u and ak:
-                        await deduct_usage(db, u, ak, model, prompt_in, comp_out)
-            return JSONResponse(data)
+                        await deduct_usage(db, u, ak, model, p, c)
+            return JSONResponse(anthropic_resp)
     except Exception as e:
-        logger.error(f"Anthropic request error for {model}: {e}")
-        return JSONResponse(
-            {"type": "error", "error": {"type": "server_error", "message": str(e)}},
-            status_code=502,
-        )
+        logger.error(f"OpenAI upstream error: {e}")
+        return JSONResponse({"type": "error", "error": {"type": "server_error", "message": str(e)}}, status_code=502)
 
 
 @app.post("/v1/chat/completions")
