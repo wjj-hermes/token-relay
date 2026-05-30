@@ -696,54 +696,54 @@ async def anthropic_messages(request: Request):
                                 except json.JSONDecodeError:
                                     continue
 
-                                if "usage" in event:
-                                    usage_data.update(event["usage"])
+                                try:
+                                    if "usage" in event and event["usage"]:
+                                        usage_data.update(event["usage"])
 
-                                choices = event.get("choices") or []
-                                if not choices:
-                                    continue
-                                choice = choices[0] if choices else {}
-                                delta = choice.get("delta") or {}
-                                finish = choice.get("finish_reason")
-
-                                # Text content
-                                if delta.get("content"):
-                                    if not text_block_started:
-                                        yield f"data: {json.dumps({'type': 'content_block_start', 'index': content_idx, 'content_block': {'type': 'text', 'text': ''}})}\n\n"
-                                        text_block_started = True
-                                    yield f"data: {json.dumps({'type': 'content_block_delta', 'index': content_idx, 'delta': {'type': 'text_delta', 'text': delta['content']}})}\n\n"
-
-                                # Tool calls
-                                for tc_delta in (delta.get("tool_calls") or []):
-                                    if not tc_delta:
+                                    choices = event.get("choices") or []
+                                    if not choices:
                                         continue
-                                    idx = tc_delta.get("index", 0)
-                                    if idx not in tool_calls_acc:
-                                        tool_calls_acc[idx] = {"id": "", "name": "", "arguments": ""}
-                                        # Start tool_use content block
-                                        yield f"data: {json.dumps({'type': 'content_block_start', 'index': content_idx + 1 + idx, 'content_block': {'type': 'tool_use', 'id': '', 'name': '', 'input': {}}})}\n\n"
-                                    if tc_delta.get("id"):
-                                        tool_calls_acc[idx]["id"] = tc_delta["id"]
-                                    func = tc_delta.get("function") or {}
-                                    if func.get("name"):
-                                        tool_calls_acc[idx]["name"] = func["name"]
-                                        # Send name via content_block_start update (Anthropic sends name at start)
-                                        yield f"data: {json.dumps({'type': 'content_block_delta', 'index': content_idx + 1 + idx, 'delta': {'type': 'input_json_delta', 'partial_json': ''}})}\n\n"
-                                    if func.get("arguments"):
-                                        tool_calls_acc[idx]["arguments"] += func["arguments"]
-                                        yield f"data: {json.dumps({'type': 'content_block_delta', 'index': content_idx + 1 + idx, 'delta': {'type': 'input_json_delta', 'partial_json': func['arguments']}})}\n\n"
+                                    choice = choices[0] if choices else {}
+                                    delta = choice.get("delta") or {}
+                                    finish = choice.get("finish_reason")
 
-                                # Finish
-                                if finish:
-                                    # Close text block if open
-                                    if text_block_started:
-                                        yield f"data: {json.dumps({'type': 'content_block_stop', 'index': content_idx})}\n\n"
-                                    # Close tool blocks
-                                    for idx in sorted(tool_calls_acc.keys()):
-                                        yield f"data: {json.dumps({'type': 'content_block_stop', 'index': content_idx + 1 + idx})}\n\n"
-                                    stop_map = {"stop": "end_turn", "length": "max_tokens", "tool_calls": "tool_use"}
-                                    yield f"data: {json.dumps({'type': 'message_delta', 'delta': {'stop_reason': stop_map.get(finish, 'end_turn'), 'stop_sequence': None}, 'usage': {'output_tokens': usage_data.get('completion_tokens', 0)}})}\n\n"
-                                    yield f"data: {json.dumps({'type': 'message_stop'})}\n\n"
+                                    # Text content
+                                    if delta.get("content"):
+                                        if not text_block_started:
+                                            yield f"data: {json.dumps({'type': 'content_block_start', 'index': content_idx, 'content_block': {'type': 'text', 'text': ''}})}\n\n"
+                                            text_block_started = True
+                                        yield f"data: {json.dumps({'type': 'content_block_delta', 'index': content_idx, 'delta': {'type': 'text_delta', 'text': delta['content']}})}\n\n"
+
+                                    # Tool calls
+                                    for tc_delta in (delta.get("tool_calls") or []):
+                                        if not tc_delta:
+                                            continue
+                                        idx = tc_delta.get("index", 0)
+                                        if idx not in tool_calls_acc:
+                                            tool_calls_acc[idx] = {"id": "", "name": "", "arguments": ""}
+                                            yield f"data: {json.dumps({'type': 'content_block_start', 'index': content_idx + 1 + idx, 'content_block': {'type': 'tool_use', 'id': '', 'name': '', 'input': {}}})}\n\n"
+                                        if tc_delta.get("id"):
+                                            tool_calls_acc[idx]["id"] = tc_delta["id"]
+                                        func = tc_delta.get("function") or {}
+                                        if func.get("name"):
+                                            tool_calls_acc[idx]["name"] = func["name"]
+                                            yield f"data: {json.dumps({'type': 'content_block_delta', 'index': content_idx + 1 + idx, 'delta': {'type': 'input_json_delta', 'partial_json': ''}})}\n\n"
+                                        if func.get("arguments"):
+                                            tool_calls_acc[idx]["arguments"] += func["arguments"]
+                                            yield f"data: {json.dumps({'type': 'content_block_delta', 'index': content_idx + 1 + idx, 'delta': {'type': 'input_json_delta', 'partial_json': func['arguments']}})}\n\n"
+
+                                    # Finish
+                                    if finish:
+                                        if text_block_started:
+                                            yield f"data: {json.dumps({'type': 'content_block_stop', 'index': content_idx})}\n\n"
+                                        for idx in sorted(tool_calls_acc.keys()):
+                                            yield f"data: {json.dumps({'type': 'content_block_stop', 'index': content_idx + 1 + idx})}\n\n"
+                                        stop_map = {"stop": "end_turn", "length": "max_tokens", "tool_calls": "tool_use"}
+                                        yield f"data: {json.dumps({'type': 'message_delta', 'delta': {'stop_reason': stop_map.get(finish, 'end_turn'), 'stop_sequence': None}, 'usage': {'output_tokens': usage_data.get('completion_tokens', 0)}})}\n\n"
+                                        yield f"data: {json.dumps({'type': 'message_stop'})}\n\n"
+                                except Exception as chunk_err:
+                                    logger.error(f"Chunk processing error: {chunk_err}, event={json.dumps(event, ensure_ascii=False)[:300]}")
+                                    continue
 
             except Exception as e:
                 logger.error(f"OpenAI->Anthropic stream error: {e}")
