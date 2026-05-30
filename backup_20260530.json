@@ -1,0 +1,170 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "admin",
+      "email": "***@localhost",
+      "balance": 10000000,
+      "is_active": true,
+      "is_admin": true,
+      "created_at": "2026-05-30T09:55:38.667433"
+    },
+    {
+      "id": 2,
+      "username": "Canoe",
+      "email": "***@qq.com",
+      "balance": 10000000,
+      "is_active": true,
+      "is_admin": false,
+      "created_at": "2026-05-30T09:55:38.670965"
+    }
+  ],
+  "api_keys": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "key": "sk-tr-***",
+      "name": "codex",
+      "is_active": true,
+      "expire_at": null,
+      "allowed_model": "",
+      "created_at": "2026-05-30T09:55:38.707283"
+    }
+  ],
+  "products": [
+    {
+      "id": 1,
+      "name": "入门套餐",
+      "description": "适合轻度使用和个人学习，约可进行 2000 次对话",
+      "type": "quota",
+      "price": 990,
+      "token_amount": 100000,
+      "duration_days": 365,
+      "daily_limit": 0,
+      "model_name": "",
+      "is_active": true,
+      "created_at": "2026-05-30T09:55:38.677252"
+    },
+    {
+      "id": 2,
+      "name": "专业套餐",
+      "description": "适合日常开发和小型团队，约可进行 10000 次对话",
+      "type": "quota",
+      "price": 4990,
+      "token_amount": 500000,
+      "duration_days": 365,
+      "daily_limit": 0,
+      "model_name": "",
+      "is_active": true,
+      "created_at": "2026-05-30T09:55:38.677257"
+    },
+    {
+      "id": 3,
+      "name": "企业套餐",
+      "description": "适合高频调用和企业级应用，约可进行 40000 次对话",
+      "type": "quota",
+      "price": 19900,
+      "token_amount": 2000000,
+      "duration_days": 365,
+      "daily_limit": 0,
+      "model_name": "",
+      "is_active": true,
+      "created_at": "2026-05-30T09:55:38.677258"
+    },
+    {
+      "id": 4,
+      "name": "月度基础版",
+      "description": "按月订阅，每日 5 万 token 额度，适合稳定用量",
+      "type": "subscription",
+      "price": 2990,
+      "token_amount": 0,
+      "duration_days": 30,
+      "daily_limit": 50000,
+      "model_name": "",
+      "is_active": true,
+      "created_at": "2026-05-30T09:55:38.678562"
+    },
+    {
+      "id": 5,
+      "name": "月度专业版",
+      "description": "按月订阅，每日 20 万 token 额度，适合高频调用",
+      "type": "subscription",
+      "price": 9990,
+      "token_amount": 0,
+      "duration_days": 30,
+      "daily_limit": 200000,
+      "model_name": "",
+      "is_active": true,
+      "created_at": "2026-05-30T09:55:38.678566"
+    },
+    {
+      "id": 6,
+      "name": "GPT-5.5",
+      "description": "适合轻度使用和个人学习codex",
+      "type": "subscription",
+      "price": 200,
+      "token_amount": 10000000,
+      "duration_days": 5,
+      "daily_limit": 0,
+      "model_name": "GPT5.5",
+      "is_active": true,
+      "created_at": "2026-05-30T09:55:38.684342"
+    },
+    {
+      "id": 7,
+      "name": "deepseek-v4-flash",
+      "description": "适合日常开发和小型团队，约可进行 10000 次对话",
+      "type": "subscription",
+      "price": 100,
+      "token_amount": 5000000,
+      "duration_days": 5,
+      "daily_limit": 0,
+      "model_name": "deepseek-ai/deepseek-v4-flash",
+      "is_active": true,
+      "created_at": "2026-05-30T09:55:38.685490"
+    }
+  ],
+  "orders": [],
+  "usage_logs": [],
+  "llm_models": [
+    {
+      "id": 1,
+      "name": "deepseek-ai/deepseek-v4-flash",
+      "model_id": "deepseek-ai/deepseek-v4-flash",
+      "base_url": "https://integrate.api.nvidia.com/v1",
+      "api_key": "***",
+      "is_active": true,
+      "created_at": "2026-05-30T09:55:38.688565"
+    },
+    {
+      "id": 2,
+      "name": "GPT5.5",
+      "model_id": "mimo-v2.5-pro",
+      "base_url": "https://token-plan-cn.xiaomimimo.com/v1",
+      "api_key": "***",
+      "is_active": true,
+      "created_at": "2026-05-30T09:55:38.691321"
+    },
+    {
+      "id": 3,
+      "name": "qwen3.5",
+      "model_id": "qwen/qwen3-coder-480b-a35b-instruct",
+      "base_url": "https://integrate.api.nvidia.com/v1",
+      "api_key": "***",
+      "is_active": true,
+      "created_at": "2026-05-30T09:55:38.693391"
+    },
+    {
+      "id": 4,
+      "name": "GPT-5",
+      "model_id": "deepseek-ai/deepseek-v4-flash",
+      "base_url": "https://integrate.api.nvidia.com/v1",
+      "api_key": "***",
+      "is_active": true,
+      "created_at": "2026-05-30T09:55:38.695694"
+    }
+  ],
+  "subscriptions": [],
+  "_backup_time": "2026-05-30T09:56:08.146158",
+  "_note": "Sensitive data (password hashes, API keys, emails) has been redacted"
+}
