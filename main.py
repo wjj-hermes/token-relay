@@ -387,7 +387,8 @@ async def debug_last_request():
     return _last_request_body
 
 def _convert_responses_tools_to_chat(tools: list) -> list:
-    """Convert Responses API flat tool format to Chat Completions nested format."""
+    """Convert Responses API flat tool format to Chat Completions nested format.
+    Skip non-function tools (namespace, web_search, etc.) that upstream doesn't support."""
     result = []
     for tool in tools:
         if tool.get("type") == "function" and "name" in tool:
@@ -399,8 +400,7 @@ def _convert_responses_tools_to_chat(tools: list) -> list:
                     "parameters": tool.get("parameters", {}),
                 }
             })
-        else:
-            result.append(tool)
+        # Skip non-function tools (namespace, web_search, etc.)
     return result
 
 
