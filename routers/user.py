@@ -123,8 +123,25 @@ async def subscriptions(request: Request):
     )
     subs = subs_result.scalars().all()
 
+    tools = [
+        {
+            "name": "Voice Chat",
+            "desc_key": "tool_voice_chat_desc",
+            "icon": "mic",
+            "github": "https://github.com/wjj-hermes/voice-chat",
+            "color": "#28a745",
+        },
+        {
+            "name": "Claude Proxy",
+            "desc_key": "tool_claude_proxy_desc",
+            "icon": "shield",
+            "github": "https://github.com/wjj-hermes/claude-proxy",
+            "color": "#6f42c1",
+        },
+    ]
+
     return templates.TemplateResponse(request, "user/subscriptions.html", _ctx(
-        request, user=user, subs=subs,
+        request, user=user, subs=subs, tools=tools,
     ))
 
 
