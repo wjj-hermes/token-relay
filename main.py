@@ -1,6 +1,7 @@
 import json
 import time
 import logging
+from datetime import datetime
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import StreamingResponse, JSONResponse, HTMLResponse
@@ -664,6 +665,41 @@ async def responses_api(request: Request):
 async def legacy_dashboard(request: Request):
     from fastapi.responses import RedirectResponse
     return RedirectResponse("/admin/dashboard", status_code=301)
+
+
+@app.get("/debug/backup")
+async def debug_backup():
+    """Dump all database tables as JSON for backup."""
+    from models import User, ApiKey, Product, Order, UsageLog, LLMModel, Subscription
+    from sqlalchemy import select
+
+    def serialize(obj):
+        """Convert SQLAlchemy model to dict."""
+        d = {}
+        for c in obj.__table__.columns:
+            v = getattr(obj, c.name)
+            if hasattr(v, "isoformat"):
+                v = v.isoformat()
+            d[c.name] = v
+        return d
+
+    async with SessionLocal() as db:
+        backup = {}
+        for name, Model in [
+            ("users", User),
+            ("api_keys", ApiKey),
+            ("products", Product),
+            ("orders", Order),
+            ("usage_logs", UsageLog),
+            ("llm_models", LLMModel),
+            ("subscriptions", Subscription),
+        ]:
+            result = await db.execute(select(Model))
+            backup[name] = [serialize(row) for row in result.scalars().all()]
+
+    backup["_backup_time"] = datetime.utcnow().isoformat()
+    backup["_table_counts"] = {k: len(v) for k, v in backup.items() if isinstance(v, list)}
+    return JSONResponse(backup)
 
 
 @app.get("/api/stats")
