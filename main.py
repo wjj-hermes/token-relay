@@ -521,12 +521,13 @@ async def anthropic_messages(request: Request):
     try:
         provider, prov_name = relay._find_provider(model)
         upstream_model_id = provider.resolve_model(model)
+        base = provider.base_url.rstrip("/")
         if isinstance(provider, AnthropicProvider):
             is_anthropic_upstream = True
-            upstream_url = f"{provider.base_url}/v1/messages"
+            upstream_url = f"{base}/messages" if base.endswith("/v1") else f"{base}/v1/messages"
         else:
             is_anthropic_upstream = False
-            upstream_url = f"{provider.base_url}/v1/chat/completions"
+            upstream_url = f"{base}/chat/completions" if base.endswith("/v1") else f"{base}/v1/chat/completions"
         key = await relay.key_manager.get_key(prov_name)
         if key:
             upstream_key = key
@@ -557,12 +558,13 @@ async def anthropic_messages(request: Request):
                 upstream_model_id = db_model.model_id
                 upstream_key = db_model.api_key
                 ptype = getattr(db_model, "provider_type", "openai") or "openai"
+                base = db_model.base_url.rstrip("/")
                 if ptype == "anthropic":
                     is_anthropic_upstream = True
-                    upstream_url = f"{db_model.base_url.rstrip('/')}/v1/messages"
+                    upstream_url = f"{base}/messages" if base.endswith("/v1") else f"{base}/v1/messages"
                 else:
                     is_anthropic_upstream = False
-                    upstream_url = f"{db_model.base_url.rstrip('/')}/v1/chat/completions"
+                    upstream_url = f"{base}/chat/completions" if base.endswith("/v1") else f"{base}/v1/chat/completions"
 
     if not upstream_url:
         raise HTTPException(status_code=404, detail=f"No provider for model: {model}")
