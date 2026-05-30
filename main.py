@@ -28,6 +28,7 @@ async def lifespan(app: FastAPI):
     await _seed_models()
     await _ensure_gpt55()
     await _ensure_qwen35()
+    await _ensure_gpt5()
     await _ensure_codex_key()
     # Load models from database
     await relay.reload_from_db()
@@ -211,6 +212,24 @@ async def _ensure_qwen35():
         db.add(m)
         await db.commit()
         logger.info("Added qwen3.5 model (qwen/qwen3-coder-480b-a35b-instruct)")
+
+
+async def _ensure_gpt5():
+    from models import LLMModel
+    async with SessionLocal() as db:
+        from sqlalchemy import select
+        result = await db.execute(select(LLMModel).where(LLMModel.name == "GPT-5"))
+        if result.scalar_one_or_none():
+            return
+        m = LLMModel(
+            name="GPT-5",
+            model_id="deepseek-ai/deepseek-v4-flash",
+            base_url="https://integrate.api.nvidia.com/v1",
+            api_key="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",
+        )
+        db.add(m)
+        await db.commit()
+        logger.info("Added GPT-5 model (deepseek-ai/deepseek-v4-flash)")
 
 
 async def _ensure_codex_key():
