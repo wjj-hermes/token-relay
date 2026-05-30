@@ -125,6 +125,13 @@ async def subscriptions(request: Request):
 
     tools = [
         {
+            "name": "Token Relay",
+            "desc_key": "tool_token_relay_desc",
+            "icon": "relay",
+            "github": "https://github.com/wjj-hermes/token-relay",
+            "color": "#fd7e14",
+        },
+        {
             "name": "Voice Chat",
             "desc_key": "tool_voice_chat_desc",
             "icon": "mic",
