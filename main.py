@@ -647,9 +647,16 @@ async def anthropic_messages(request: Request):
             return JSONResponse({"type": "error", "error": {"type": "server_error", "message": str(e)}}, status_code=502)
 
     # --- OpenAI upstream: convert Anthropic <-> OpenAI format ---
-    openai_messages, openai_kwargs = _anthropic_to_openai(body)
+    try:
+        openai_messages, openai_kwargs = _anthropic_to_openai(body)
+    except Exception as e:
+        logger.error(f"Anthropic->OpenAI conversion error: {e}")
+        return JSONResponse({"type": "error", "error": {"type": "invalid_request_error", "message": f"Conversion error: {str(e)}"}}, status_code=400)
+
     openai_body = {"model": upstream_model_id, "messages": openai_messages, "stream": is_stream}
     openai_body.update(openai_kwargs)
+
+    logger.info(f"Anthropic->OpenAI: model={upstream_model_id}, url={upstream_url}, messages={len(openai_messages)}")
 
     headers = {
         "Content-Type": "application/json",
