@@ -699,11 +699,12 @@ async def anthropic_messages(request: Request):
                                 if "usage" in event:
                                     usage_data.update(event["usage"])
 
-                                choices = event.get("choices", [])
+                                choices = event.get("choices") or []
                                 if not choices:
                                     continue
-                                delta = choices[0].get("delta", {})
-                                finish = choices[0].get("finish_reason")
+                                choice = choices[0] if choices else {}
+                                delta = choice.get("delta") or {}
+                                finish = choice.get("finish_reason")
 
                                 # Text content
                                 if delta.get("content"):
@@ -714,6 +715,8 @@ async def anthropic_messages(request: Request):
 
                                 # Tool calls
                                 for tc_delta in (delta.get("tool_calls") or []):
+                                    if not tc_delta:
+                                        continue
                                     idx = tc_delta.get("index", 0)
                                     if idx not in tool_calls_acc:
                                         tool_calls_acc[idx] = {"id": "", "name": "", "arguments": ""}
